@@ -9,9 +9,10 @@ test('Phase 04: actual Firebase round-trip, simultaneous Ask replies and direct-
   assert.equal(process.env.FIREBASE_DATABASE_EMULATOR_HOST,'127.0.0.1:9010','Only run against the local emulator');
   const { privateKey }=generateKeyPairSync('rsa',{modulusLength:2048,privateKeyEncoding:{type:'pkcs8',format:'pem'},publicKeyEncoding:{type:'spki',format:'pem'}});
   process.env.FIREBASE_SERVICE_ACCOUNT=JSON.stringify({project_id:'demo-hyperflow',client_email:'fixture@demo-hyperflow.iam.gserviceaccount.com',private_key:privateKey});
-  process.env.FIREBASE_DATABASE_URL='https://demo-hyperflow-default-rtdb.firebaseio.com';
+  process.env.FIREBASE_DATABASE_URL='https://demo-hyperflow.firebaseio.com';
   const { handleCommitments }=await import('../../lib/commitments/api');
-  const { readOperationalCommitment }=await import('../../lib/serverStore');
+  const { readOperationalCommitment, transactOperationalCommitment }=await import('../../lib/serverStore');
+  const { createCommitment, transitionCommitment }=await import('../../lib/commitments/model');
   const { getApps,deleteApp }=await import('firebase-admin/app');
   const testEnv=await initializeTestEnvironment({projectId:'demo-hyperflow',database:{host:'127.0.0.1',port:9010,rules:readFileSync('database.rules.json','utf8')}});
   const member={orgId:'phase04_fixture',uid:'ceo'};
@@ -31,5 +32,13 @@ test('Phase 04: actual Firebase round-trip, simultaneous Ask replies and direct-
     await assertFails(get(ref(client,path)));
     await assertFails(set(ref(client,path),{state:'fulfilled'}));
     assert.equal(await readOperationalCommitment('other_tenant',created.item.id),null);
+    const cold=createCommitment({id:'ob_cold_fixture',orgId:member.orgId,projectId:'alpha',actor:'ceo',terms:saved!.terms,now:Date.now(),askId:'ask_cold'});
+    await testEnv.withSecurityRulesDisabled(async context => { await set(ref(context.database(), `operational_commitments/${member.orgId}/${cold.id}`), JSON.parse(JSON.stringify(cold))); });
+    const coldAccepted=await transactOperationalCommitment(member.orgId,cold.id,row=>{
+      assert.ok(row,'The domain updater must receive authoritative existing data, not the cold-cache null');
+      return transitionCommitment(row,{action:'respond',expectedVersion:1,askId:'ask_cold',decision:'approved',note:'Cold instance acceptance'},'ceo',Date.now(),'ask_next');
+    });
+    assert.equal(coldAccepted.state,'accepted'); assert.equal(coldAccepted.version,2);
+    await assert.rejects(transactOperationalCommitment(member.orgId,'ob_absent',row=>{ assert.equal(row,null); throw new Error('Obligation not found'); }),/Obligation not found/);
   } finally { await testEnv.cleanup(); await Promise.all(getApps().map(deleteApp)); }
 });
