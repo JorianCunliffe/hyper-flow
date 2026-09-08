@@ -464,6 +464,30 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
                     {m.name}: {m.actionConfig?.lastRun?.status || "Not started"}
                   </summary>
                   <p>{m.actionConfig?.lastRun?.error}</p>
+                  {m.actionConfig?.lastRun?.output?.artifact_job_id && (
+                    <div className="my-3 space-y-2">
+                      <a
+                        className="underline"
+                        href={`/?view=artifacts&project=${encodeURIComponent(run.projectId)}&artifact=${encodeURIComponent(m.actionConfig.lastRun.output.artifact_job_id)}`}
+                      >
+                        Open report inputs and file review
+                      </a>
+                      {m.actionConfig.lastRun.status === "pending" &&
+                        run.status !== "cancelled" && (
+                          <button
+                            className={button}
+                            onClick={() =>
+                              void command("reconcile_artifact", {
+                                runId: run.id,
+                                nodeId: m.id,
+                              })
+                            }
+                          >
+                            Verify completed file review
+                          </button>
+                        )}
+                    </div>
+                  )}
                   {m.actionConfig?.lastRun?.status === "pending" &&
                     m.actionConfig.lastRun.output?.ask?.status === "open" &&
                     run.status !== "cancelled" && (

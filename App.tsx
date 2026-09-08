@@ -75,6 +75,7 @@ import { MeetingsPanel } from './components/MeetingsPanel';
 import { VisibleFlowsPanel } from './components/VisibleFlowsPanel';
 import { CockpitPanel } from './components/CockpitPanel';
 import { DiaryPanel } from './components/DiaryPanel';
+import { ArtifactsPanel } from './components/ArtifactsPanel';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { CloudSetupModal } from './components/modals/CloudSetupModal';
 import { CreateProjectModal } from './components/modals/CreateProjectModal';
@@ -252,6 +253,7 @@ export const App: React.FC = () => {
   const [isObligationsMode, setIsObligationsMode] = useState(initialView === 'obligations');
   const [isMeetingsMode, setIsMeetingsMode] = useState(initialView === 'meetings');
   const [isFlowsMode, setIsFlowsMode] = useState(initialView === 'flows');
+  const [isArtifactsMode, setIsArtifactsMode] = useState(initialView === 'artifacts');
   const [isDiaryMode, setIsDiaryMode] = useState(initialView === 'diary');
   const [isCockpitMode, setIsCockpitMode] = useState(initialView === 'cockpit');
   const [kanbanGrouping, setKanbanGrouping] = useState<'project' | 'member'>('project');
@@ -265,7 +267,7 @@ export const App: React.FC = () => {
   const [kanbanFilterToday, setKanbanFilterToday] = useState<boolean>(false);
   const [kanbanFilterLate, setKanbanFilterLate] = useState<boolean>(false);
 
-  const activeView: AppView = isDiaryMode ? 'diary' : isCockpitMode ? 'cockpit' : isFlowsMode ? 'flows' : isMeetingsMode ? 'meetings' : isObligationsMode ? 'obligations' : isTriageMode ? 'activity' : isReportingMode ? 'reports' : isApprovalsMode ? 'approvals' : isFeedMode ? 'feed' : isScratchMode ? 'scratch' : isKanbanMode ? 'kanban' : 'projects';
+  const activeView: AppView = isArtifactsMode ? 'artifacts' : isDiaryMode ? 'diary' : isCockpitMode ? 'cockpit' : isFlowsMode ? 'flows' : isMeetingsMode ? 'meetings' : isObligationsMode ? 'obligations' : isTriageMode ? 'activity' : isReportingMode ? 'reports' : isApprovalsMode ? 'approvals' : isFeedMode ? 'feed' : isScratchMode ? 'scratch' : isKanbanMode ? 'kanban' : 'projects';
   const openView = useCallback((view: AppView) => {
     setIsKanbanMode(view === 'kanban');
     setIsScratchMode(view === 'scratch');
@@ -277,6 +279,7 @@ export const App: React.FC = () => {
     setIsMeetingsMode(view === 'meetings');
     setIsFlowsMode(view === 'flows');
     setIsDiaryMode(view === 'diary');
+    setIsArtifactsMode(view === 'artifacts');
     setIsCockpitMode(view === 'cockpit');
     const url = new URL(window.location.href);
     if (view === 'projects') url.searchParams.delete('view');
@@ -2129,6 +2132,7 @@ export const App: React.FC = () => {
            <button type="button" onClick={() => openView('meetings')} aria-pressed={activeView === 'meetings'} className="rounded-lg px-3 py-2 text-xs font-bold">Meetings</button>
            <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg px-3 py-2 text-xs font-bold">Flows</button>
            <button type="button" onClick={() => openView('cockpit')} aria-pressed={activeView === 'cockpit'} className="rounded-lg px-3 py-2 text-xs font-bold">Cockpit</button>
+        <button type="button" onClick={() => openView('artifacts')} aria-pressed={activeView === 'artifacts'} className="rounded-lg border px-3 py-2 text-sm font-bold">Office outputs</button>
         <button type="button" onClick={() => openView('diary')} aria-pressed={activeView === 'diary'} className="rounded-lg border px-3 py-2 text-sm font-bold">Diary</button>
            <button type="button" onClick={() => openView('activity')} aria-pressed={activeView === 'activity'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'activity' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Inbox size={14} /> Activity</button>
            <button type="button" onClick={() => openView('scratch')} aria-pressed={activeView === 'scratch'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'scratch' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Edit2 size={14} /> Scratch</button>
@@ -2322,6 +2326,7 @@ export const App: React.FC = () => {
         <button type="button" onClick={() => openView('meetings')} aria-pressed={activeView === 'meetings'} className="rounded-lg border px-3 py-2 text-sm font-bold">Meetings</button>
         <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg border px-3 py-2 text-sm font-bold">Flows</button>
         <button type="button" onClick={() => openView('cockpit')} aria-pressed={activeView === 'cockpit'} className="rounded-lg border px-3 py-2 text-sm font-bold">Cockpit</button>
+        <button type="button" onClick={() => openView('artifacts')} aria-pressed={activeView === 'artifacts'} className="rounded-lg border px-3 py-2 text-sm font-bold">Office outputs</button>
         <button type="button" onClick={() => openView('diary')} aria-pressed={activeView === 'diary'} className="rounded-lg border px-3 py-2 text-sm font-bold">Diary</button>
         {/* Header Actions */}
         <div className="flex items-center gap-2 shrink-0">
@@ -2444,7 +2449,7 @@ export const App: React.FC = () => {
         )}
 
         {/* MAIN VIEW CONTENT */}
-        {isDiaryMode ? (<DiaryPanel key={currentOrgId || 'none'} />) : isCockpitMode ? (
+        {isArtifactsMode ? (<ArtifactsPanel key={currentOrgId || 'none'} />) : isDiaryMode ? (<DiaryPanel key={currentOrgId || 'none'} />) : isCockpitMode ? (
           <CockpitPanel key={currentOrgId || 'none'} />
         ) : isFlowsMode ? (
           <VisibleFlowsPanel key={currentOrgId || 'none'} projects={projects} />

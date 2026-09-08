@@ -2,7 +2,7 @@
 
 Last updated: 9 September 2026.
 
-**Current state:** Phases 01–07 are merged and deployed. Phase 06's controlled live request compilation, approval, evidence/report execution and version-promotion checks pass. Phase 07 cockpit reads accepted live work; Phase 08 is next. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
+**Current state:** Phases 01–08 implementations are merged and deployed. Phase 06's controlled live request compilation, approval, evidence/report execution and version-promotion checks pass. Phase 07 cockpit reads accepted live work; Phase 08 live calendar booking acceptance awaits consent and policy; Phase 09 is in local verification. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
 
 **Current scope:** two existing applications. Communications Service retains its existing memory, search and enrichment. No memory extraction or third memory application.
 
@@ -37,8 +37,8 @@ Last updated: 9 September 2026.
 | P05 | Transcribed meeting ingestion and enrichment | Released; controlled live acceptance verified | P03, P04 | [P05 record](implementation/P05.md) |
 | P06 | Visible reusable flows from requests | Released; controlled live acceptance verified | P04; P05 for meeting inputs | [P06 record](implementation/P06.md) |
 | P07 | CEO cockpit, follow-up and receptionist | Released; controlled cockpit verified; fresh channels tracked in P12 | P06, P02–P04; P05 for meeting briefs | [P07 record](implementation/P07.md) |
-| P08 | Diary and calendar execution | Not started | P07, P01 | No phase record yet |
-| P09 | Reports, templates and office artifacts | Not started | P06; P04/P05 for operational inputs | No phase record yet |
+| P08 | Diary and calendar execution | Released; live calendar grant and booking acceptance pending | P07, P01 | [P08 record](implementation/P08.md) |
+| P09 | Reports, templates and office artifacts | Implemented; local verification and release in progress | P06; P04/P05 for operational inputs | [P09 record](implementation/P09.md) |
 | P10 | Approved social and website publication | Not started | P09 | No phase record yet |
 | P11 | Complete REST parity and SaaS operations | Not started | Cross-cutting from P01; final audit after selected product phases | No phase record yet |
 | P12 | Integrated CEO acceptance and release | Not started | P00–P11 for full programme | No phase record yet |
@@ -47,7 +47,7 @@ Replace “No phase record yet” with links to the actual per-app records when 
 
 ## Next goal
 
-Implement Phase 08, then repeat implementation, verification and release through Phase 12 under the user's continuing authorization. Preserve the application boundaries and existing channel authority. Generic transcript upload is the initial source; selected calendar/social/CMS/provider details are pending user clarification. Missing provider authority must not be replaced with invented grants or reported as passed live acceptance.
+Finish Phase 09 verification and release, then repeat implementation, verification and release through Phase 12 under the user's continuing authorization. Preserve the application boundaries and existing channel authority. Generic transcript upload is the initial source; selected calendar/social/CMS/provider details are pending user clarification. Missing provider authority must not be replaced with invented grants or reported as passed live acceptance.
 
 ## Decision log
 

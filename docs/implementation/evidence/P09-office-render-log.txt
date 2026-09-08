@@ -1,0 +1,2 @@
+{"workbookRecalculation":"passed","workbookViews":4,"slidesRendered":6}
+Native renderer exit: -1073741819

@@ -3,6 +3,31 @@ import { NodeType, type HumanAsk, type Project } from "../../types.js";
 import { createAsk } from "../asks/createAsk.js";
 
 export const FLOW_CATALOG = {
+  check_artifact: {
+    label: "Verify the reviewed Office file",
+    nodeType: NodeType.REPORT,
+    required: ["artifactId", "fileHash"],
+    effect: "Reads the exact reviewed file and checks integrity",
+    authority: "Current project access",
+    receipt: "Reviewed artifact identity and fingerprint",
+    outputSchema: { artifact_receipt: "reviewed artifact" },
+    timeoutSeconds: 60,
+  },
+  prepare_office_report: {
+    label: "Prepare a weekly Office report for review",
+    nodeType: NodeType.REPORT,
+    required: ["templateId", "templateVersion", "windowDays"],
+    effect:
+      "Freezes current accepted work and source context for an Office output; waits for input approval and file review",
+    authority:
+      "Approved flow and current project access; separate artifact review",
+    receipt: "Reviewed file fingerprint and source snapshot",
+    outputSchema: {
+      artifact_job_id: "string",
+      artifact_receipt: "reviewed artifact",
+    },
+    timeoutSeconds: 120,
+  },
   collect_update: {
     label: "Review a received update",
     nodeType: NodeType.REPORT,

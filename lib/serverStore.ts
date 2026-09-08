@@ -48,6 +48,17 @@ const APP_NAME = 'hyperflow-server';
 
 export class ServerStoreUnavailable extends Error {}
 
+export async function readArtifactRecord<T>(org:string,kind:'jobs'|'registries'|'files',id:string):Promise<T|null>{
+  const snapshot=await getDb().ref(`artifacts/${safeRtdbKey(org)}/${kind}/${safeRtdbKey(id)}`).get();return snapshot.exists()?snapshot.val():null;
+}
+export async function listArtifactRecords(org:string):Promise<import('./artifacts/model.js').ArtifactJob[]>{
+  const snapshot=await getDb().ref(`artifacts/${safeRtdbKey(org)}/jobs`).orderByKey().limitToFirst(100).get();return Object.values(snapshot.val()||{});
+}
+export async function transactArtifactRecord<T>(org:string,kind:'jobs'|'registries'|'files',id:string,update:(current:T|null)=>T):Promise<T>{
+  const reference=getDb().ref(`artifacts/${safeRtdbKey(org)}/${kind}/${safeRtdbKey(id)}`);let listener=()=>{};
+  try{await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});const result=await reference.transaction(current=>{const value=JSON.stringify(update(current));if(Buffer.byteLength(value)>3800000)throw new Error('Artifact record exceeds its storage limit');return JSON.parse(value);},undefined,false);if(!result.committed)throw new Error('Artifact update was not saved');return result.snapshot.val();}finally{reference.off('value',listener);}
+}
+
 export async function readCalendarLedger(orgId:string,id:string):Promise<import('./calendar/model.js').CalendarLedger|null>{
   const snapshot=await getDb().ref(`calendar_ledgers/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).get();
   return snapshot.exists()?{...snapshot.val(),policies:snapshot.val().policies||{},proposals:snapshot.val().proposals||{}}:null;

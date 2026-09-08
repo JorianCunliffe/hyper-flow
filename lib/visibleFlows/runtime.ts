@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { advanceFlow, isNodeComplete } from "../flowEngine.js";
 import { applyActionRun, type ActionOutcome } from "../flowOrchestrator.js";
 import { serverExecutor } from "../serverExecutor.js";
@@ -69,6 +69,66 @@ export const executeVisibleStep = async (
             ? "Some evidence was withheld because it is stale or outside the permitted source scope. Do not describe this as a complete history."
             : "",
       },
+    };
+  }
+  if (step.action === "check_artifact") {
+    await requireOrganizationMember(run.createdBy, orgId);
+    const { handleArtifacts } = await import("../artifacts/api.js");
+    const member = { orgId, uid: run.createdBy },
+      query = { projectId: run.projectId, id: step.inputs.artifactId };
+    const result: any = await handleArtifacts({ method: "GET", query }, member);
+    if (
+      result.item.status !== "reviewed" ||
+      result.item.receipt?.sha256 !== step.inputs.fileHash
+    )
+      throw new FlowError(
+        409,
+        "The approved file is no longer available for this handoff",
+      );
+    await handleArtifacts(
+      { method: "GET", query: { ...query, operation: "download" } },
+      member,
+    );
+    return {
+      status: "success",
+      output: {
+        artifact_receipt: result.item.receipt,
+        artifact_id: result.item.id,
+      },
+    };
+  }
+  if (step.action === "prepare_office_report") {
+    await requireOrganizationMember(run.createdBy, orgId);
+    const days = Number(step.inputs.windowDays);
+    if (!Number.isInteger(days) || days < 1 || days > 31)
+      throw new FlowError(422, "Report window must contain 1 to 31 days");
+    const { handleArtifacts } = await import("../artifacts/api.js");
+    const result: any = await handleArtifacts(
+      {
+        method: "POST",
+        body: {
+          operation: "prepare",
+          projectId: run.projectId,
+          requestId: createHash("sha256").update(operationId).digest("hex"),
+          templateId: step.inputs.templateId,
+          templateVersion: Number(step.inputs.templateVersion),
+          periodStart: new Date(run.createdAt - days * 86400000).toISOString(),
+          cutoff: new Date(run.createdAt).toISOString(),
+        },
+      },
+      { orgId, uid: run.createdBy },
+    );
+    return {
+      status: "pending",
+      output: {
+        artifact_job_id: result.item.id,
+        artifact_input_hash: result.item.inputHash,
+        artifact_url: `/?view=artifacts&project=${encodeURIComponent(run.projectId)}&artifact=${result.item.id}`,
+        review_required: true,
+      },
+      logs: [
+        "Open Office outputs, approve the frozen inputs, generate and inspect the file. Reconcile this step only after file review.",
+      ],
     };
   }
   if (step.action === "read_operations") {
