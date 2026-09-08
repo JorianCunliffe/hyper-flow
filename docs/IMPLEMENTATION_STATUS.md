@@ -1,8 +1,8 @@
 # HyperFlow implementation programme status
 
-Last updated: 8 September 2026.
+Last updated: 9 September 2026.
 
-**Current state:** Phases 01–05 are merged and deployed. Phase 05's controlled live meeting import, source-to-Ask acceptance, duplicate retry and correction checks pass. Phase 06 is next. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
+**Current state:** Phases 01–06 are merged and deployed. Phase 06's controlled live request compilation, approval, evidence/report execution and version-promotion checks pass. Phase 07 is next. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
 
 **Current scope:** two existing applications. Communications Service retains its existing memory, search and enrichment. No memory extraction or third memory application.
 
@@ -35,7 +35,7 @@ Last updated: 8 September 2026.
 | P03 | Safe use of existing Communications memory | Merged and deployed | P02 | [P03 record](implementation/P03.md); later baseline in [P04](implementation/P04.md) |
 | P04 | HyperFlow commitments and Ask lifecycle | Merged, deployed and controlled live lifecycle verified | P03 | [P04 record](implementation/P04.md); [release and correction](implementation/P04_RELEASE.md) |
 | P05 | Transcribed meeting ingestion and enrichment | Released; controlled live acceptance verified | P03, P04 | [P05 record](implementation/P05.md) |
-| P06 | Visible reusable flows from requests | Not started | P04; P05 for meeting inputs | No phase record yet |
+| P06 | Visible reusable flows from requests | Released; controlled live acceptance verified | P04; P05 for meeting inputs | [P06 record](implementation/P06.md) |
 | P07 | CEO cockpit, follow-up and receptionist | Not started | P06, P02–P04; P05 for meeting briefs | No phase record yet |
 | P08 | Diary and calendar execution | Not started | P07, P01 | No phase record yet |
 | P09 | Reports, templates and office artifacts | Not started | P06; P04/P05 for operational inputs | No phase record yet |
