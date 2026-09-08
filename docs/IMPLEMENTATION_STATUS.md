@@ -2,7 +2,7 @@
 
 Last updated: 8 September 2026.
 
-**Current state:** Phase 00 baseline accepted. Phases 01 and 02 are implemented and locally verified; separate stacked draft PRs await review and rollout. Baseline checks passed; production provider/schema readiness remains partly unverified as recorded below.
+**Current state:** Phase 00 baseline accepted. Phases 01 and 02 are implemented and locally verified; Phase 01/02 PRs are merged into both main branches. Runtime rollout remains a separate gate. Baseline checks passed; production provider/schema readiness remains partly unverified as recorded below.
 
 **Current scope:** two existing applications. Communications Service retains its existing memory, search and enrichment. No memory extraction or third memory application.
 
@@ -30,8 +30,8 @@ Last updated: 8 September 2026.
 | Phase | Outcome | Status | Dependencies | Evidence |
 |---|---|---|---|---|
 | P00 | Current baseline and mismatch register | Baseline accepted | None | [HyperFlow record](implementation/P00.md); Communications records in each checkout's `docs/implementation/P00.md` |
-| P01 | Ownership, authority and API/event contracts | Implemented; review/rollout pending | P00 | [Record](implementation/P01.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/2); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/2) |
-| P02 | Canonical cross-channel threads and register | Implemented; locally verified; rollout pending | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
+| P01 | Ownership, authority and API/event contracts | Merged to main; runtime verification pending | P00 | [Record](implementation/P01.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/2); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/2) |
+| P02 | Canonical cross-channel threads and register | Merged to main; locally verified; runtime acceptance pending | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
 | P03 | Safe use of existing Communications memory | Not started | P02 | No phase record yet |
 | P04 | HyperFlow commitments and Ask lifecycle | Not started | P03 | No phase record yet |
 | P05 | Transcribed meeting ingestion and enrichment | Not started | P03, P04 | No phase record yet |
@@ -47,7 +47,7 @@ Replace “No phase record yet” with links to the actual per-app records when 
 
 ## Next goal
 
-Review P01 and deploy Communications before HyperFlow. Inventory existing accounts and preserve authorized sending grants before rollout. Phase 02 threading reconciliation is complete on stacked branches. Review its PRs after P01; apply Communications migrations through 020 before its release, then release HyperFlow. Complete authenticated production and controlled provider acceptance. Phase 03 remains unstarted; memory stays in Communications.
+Phase 01 and Phase 02 are merged into both main branches. Deploy Communications and apply missing migrations through 020; its health still reports the older v2.3.0 build. Verify HyperFlow automatic production deployment and then authenticated cross-service acceptance. Preserve account email grants; no live communications were sent during integration. Phase 03 remains unstarted.
 
 ## Decision log
 
