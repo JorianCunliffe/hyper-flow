@@ -29,3 +29,5 @@ All POST bodies also contain `operation` and `projectId`. Errors use `{error}` w
 `/api/flows` gains `prepare_office_report` (templateId, templateVersion, windowDays) and `check_artifact` (artifactId, fileHash). The preparation step waits for Office output review. POST `operation=reconcile_artifact`, `id` (flow), `runId`, `nodeId` checks the exact reviewed job/file before settling the step. The existing flow approval, run identity, cancellation and resource checks remain in force.
 
 Production routing reuses the existing authenticated Gemini function through a rewrite, preserving the twelve-function deployment limit. Communications APIs gain no artifact, template or spreadsheet ownership.
+
+Report preparation requires Communications 2.6.1 kind=evidence support. It reads current permitted project source messages, without derived summaries/facts, and discloses a 100-record scan and 30-result cap. Older providers fail closed.

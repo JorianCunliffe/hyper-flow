@@ -1,0 +1,3 @@
+vendor/pptxgenjs-runtime/index.js -text
+vendor/pptxgenjs-runtime/index.d.ts -text
+vendor/pptxgenjs-runtime/LICENSE -text
