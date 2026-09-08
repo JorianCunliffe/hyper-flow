@@ -1,0 +1,14 @@
+Communications persistence disabled
+✔ Phase 02: HyperFlow proxy and HTTP client use canonical Communications SQL state (2621.4194ms)
+Communications persistence disabled
+✔ Phase 03: HyperFlow reads scoped SQL evidence and reports source changes and outages (2521.9254ms)
+Communications persistence disabled
+✔ Phase 04: SQL source evidence imports over HTTP without granting business acceptance (2487.4778ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9654.6211

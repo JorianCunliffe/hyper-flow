@@ -3,7 +3,7 @@ import { getDatabase } from 'firebase-admin/database';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { randomUUID } from 'node:crypto';
-import { normalizeCommitment } from './commitments/model.js';
+import { CommitmentError, normalizeCommitment } from './commitments/model.js';
 import {
   ActivityLog,
   AgentActionProposal,
@@ -214,10 +214,19 @@ export async function readOperationalCommitment(orgId: string, id: string): Prom
 }
 export async function transactOperationalCommitment(orgId: string, id: string,
   update: (current: import('./commitments/model.js').Commitment | null) => import('./commitments/model.js').Commitment) {
-  const result = await getDb().ref(`operational_commitments/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).transaction(current =>
-    JSON.parse(JSON.stringify(update(current ? normalizeCommitment(current) : null))), undefined, false);
-  if (!result.committed) throw new Error('Obligation update was not committed');
-  return normalizeCommitment(result.snapshot.val());
+  const reference = getDb().ref(`operational_commitments/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`);
+  let keepCurrent: () => void = () => {};
+  try {
+    // get() alone does not retain the transaction cache on a cold server instance.
+    // Hold a value listener until the transaction finishes; domain validation still
+    // runs against every authoritative retry, including a concurrent deletion.
+    await new Promise<void>((resolve, reject) => { keepCurrent = () => resolve(); reference.on('value', keepCurrent, reject); });
+    const result = await reference.transaction(current =>
+      JSON.parse(JSON.stringify(update(current ? normalizeCommitment(current) : null))), undefined, false);
+    if (!result.committed) throw new Error('Obligation update was not committed');
+    if (!result.snapshot.exists()) throw new CommitmentError(404, 'Obligation not found.');
+    return normalizeCommitment(result.snapshot.val());
+  } finally { reference.off('value', keepCurrent); }
 }
 
 export interface AuthenticatedMember {
