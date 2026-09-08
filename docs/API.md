@@ -1,5 +1,7 @@
 # HyperFlow API reference
 
+Phase 01: direct task/email requests require a project in the authenticated organization. GET/POST `/api/communications/email-policy` reads/saves the organization email authority; writes require owner/admin and `{mode, version}` from the last read. Modes: draft_only (default), allow_send. Returns `{mode, configuredMode, version}`; 409 means reload before saving. Communications owns persistence and independently enforces policy. See [boundaries](architecture/BOUNDARIES.md) and [API fragment](../contracts/phase01.openapi.json).
+
 This reference describes the HTTP handlers under `api/`, their local Express equivalents, and the Communications Service requests emitted by the current HyperFlow client.
 
 ## Conventions
@@ -916,3 +918,19 @@ Browser Firebase overrides are public application configuration, not server cred
 - `VITE_FIREBASE_MEASUREMENT_ID`
 
 Set the required browser values as one consistent Firebase project configuration, and keep `FIREBASE_DATABASE_URL` pointed at the same Realtime Database. See [`.env.example`](../.env.example) for format notes. Do not expose any backend secret through a `VITE_*` variable.
+
+
+## Phase 02: canonical thread register
+
+All routes use verified HyperFlow organization membership and call Communications REST; no canonical membership is stored in HyperFlow.
+
+| Route | Method | Inputs |
+|---|---|---|
+| `/api/thread-register` | GET | `status`, `personId`, `projectId`, `limit`, `offset`, `threadId`, `communicationOffset` |
+| `/api/thread-register/candidates` | GET | `communicationId` |
+| `/api/thread-register/correction` | POST | `communicationId`, exactly one `thread_id`/`create_new`, `reason_code`, optional `reason_detail`, `person_id`, `update_identity`, `external_project_id` |
+| `/api/thread-register/thread` | PATCH | `threadId`, editable `title`, `summary`, `status`, `external_project_id` |
+
+Tenant and initiator are derived server-side. Source/destination project references on writes must belong to the organization. Communications additionally validates tenant/project consistency and rejects workflow-bound project changes. Invalid shape is 400, inaccessible project 403, wrong method 405. Upstream 4xx is preserved; upstream service failure maps to 502. Older-server 404 is surfaced as unavailable; no local substitute writes occur.
+
+The register uses 100-thread UI pages, up to 200 via API, and 20-communication history pages. The text filter searches only the loaded page. The UI resets on organization change. See [Phase 02 evidence](implementation/P02.md) for test tiers and release requirements.

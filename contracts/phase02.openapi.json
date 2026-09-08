@@ -1,0 +1,346 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "hyperflow-5 Phase 02 supplemental contract",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/thread-register": {
+      "get": {
+        "summary": "Canonical thread read",
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical result"
+          },
+          "400": {
+            "description": "Invalid shape or domain transition"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant or capability denied"
+          },
+          "404": {
+            "description": "Missing resource or unsupported contract"
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "threadId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "communicationOffset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ]
+      }
+    },
+    "/api/thread-register/candidates": {
+      "get": {
+        "summary": "Canonical thread read",
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical result"
+          },
+          "400": {
+            "description": "Invalid shape or domain transition"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant or capability denied"
+          },
+          "404": {
+            "description": "Missing resource or unsupported contract"
+          }
+        },
+        "parameters": [
+          {
+            "name": "communicationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/thread-register/correction": {
+      "post": {
+        "summary": "Canonical thread correction or edit",
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical result"
+          },
+          "400": {
+            "description": "Invalid shape or domain transition"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant or capability denied"
+          },
+          "404": {
+            "description": "Missing resource or unsupported contract"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "thread_id": {
+                    "type": "string"
+                  },
+                  "create_new": {
+                    "type": "boolean"
+                  },
+                  "reason_code": {
+                    "type": "string",
+                    "enum": [
+                      "wrong_person",
+                      "wrong_project",
+                      "wrong_topic",
+                      "time_gap",
+                      "channel_boundary",
+                      "duplicate_thread",
+                      "other"
+                    ]
+                  },
+                  "reason_detail": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "person_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "update_identity": {
+                    "type": "boolean"
+                  },
+                  "external_project_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "initiator_id": {
+                    "type": "string"
+                  },
+                  "communicationId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason_code",
+                  "communicationId"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "thread_id"
+                    ],
+                    "not": {
+                      "required": [
+                        "create_new"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "create_new"
+                    ],
+                    "properties": {
+                      "create_new": {
+                        "const": true
+                      }
+                    },
+                    "not": {
+                      "required": [
+                        "thread_id"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "create_new": true,
+                    "reason_code": "wrong_topic",
+                    "communicationId": "comm_example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/thread-register/thread": {
+      "patch": {
+        "summary": "Canonical thread correction or edit",
+        "security": [
+          {
+            "auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical result"
+          },
+          "400": {
+            "description": "Invalid shape or domain transition"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant or capability denied"
+          },
+          "404": {
+            "description": "Missing resource or unsupported contract"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 500
+                  },
+                  "summary": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 5000
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "resolved",
+                      "closed"
+                    ]
+                  },
+                  "external_project_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "initiator_id": {
+                    "type": "string"
+                  },
+                  "threadId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "threadId"
+                ]
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "title": "Reviewed matter",
+                    "threadId": "thread_example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "auth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

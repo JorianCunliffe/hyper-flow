@@ -2,6 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { CommunicationsPersonRef } from '../../lib/communications/types.js';
 import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
 import { createCommunicationsClient } from '../../lib/communications/client.js';
+import { accountEmailPolicy } from '../../lib/communications/accountEmailPolicy.js';
+import { CommunicationsApiError } from '../../lib/communications/errors.js';
+import { handleThreadRegisterRequest, THREAD_REGISTER_ACTIONS, threadRegisterErrorStatus } from '../../lib/communications/threadRegister.js';
 import {
   listMailboxConnectionRefs,
   listScheduleRuns,
@@ -44,8 +47,8 @@ import {
 import { validateServiceSetup, type ServiceSetupInput } from '../../lib/serviceSetup.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const action = typeof req.query.action === 'string' ? req.query.action : undefined;
   try {
-    const action = typeof req.query.action === 'string' ? req.query.action : undefined;
     if (action === 'google_callback') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
       const state = verifyGoogleOAuthState(String(req.query.state || ''));
@@ -79,6 +82,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const member = await requireAppMember(req);
+    if (action === 'email_policy') return res.status(200).json(await accountEmailPolicy(member, req.method, req.body));
+    if (action && (THREAD_REGISTER_ACTIONS as readonly string[]).includes(action)) {
+      return res.status(200).json(await handleThreadRegisterRequest(action, req, member));
+    }
     if (action === 'service_setup_draft') {
       const id = String(req.query.id || req.body?.id || '').trim();
       if (req.method === 'GET') {
@@ -268,6 +275,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ connected: false, error: error?.message || 'Communications Service unavailable' });
     }
   } catch (error: any) {
-    return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
+    return res.status(error instanceof ApiAuthError ? error.status : action === 'email_policy' && error instanceof CommunicationsApiError ? error.status || 503 : threadRegisterErrorStatus(error)).json({ error: error?.message || String(error) });
   }
 }

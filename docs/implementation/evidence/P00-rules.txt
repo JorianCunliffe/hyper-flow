@@ -1,0 +1,75 @@
+
+> hyperflow@0.0.0 test:rules
+> npx --yes firebase-tools emulators:exec --project hyper-flow-a459b --only database --config firebase.test.json "node tests/e2e/rules.test.mjs"
+
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'superstatic@10.0.0',
+npm warn EBADENGINE   required: { node: '20 || 22 || 24' },
+npm warn EBADENGINE   current: { node: 'v25.5.0', npm: '11.8.0' }
+npm warn EBADENGINE }
+(node:19900) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+i  emulators: Starting emulators: database
+i  database: Database Emulator logging to database-debug.log
+i  Running script: node tests/e2e/rules.test.mjs
+
+Membership cannot be self-assigned
+[2026-09-08T07:14:37.437Z]  @firebase/database: FIREBASE WARNING: set at /users/bob failed: permission_denied
+  PASS a user cannot write their own membership record
+[2026-09-08T07:14:37.490Z]  @firebase/database: FIREBASE WARNING: set at /organizations/org_a/members/mallory failed: permission_denied
+  PASS an outsider cannot add themselves to another organization
+[2026-09-08T07:14:37.540Z]  @firebase/database: FIREBASE WARNING: set at /organizations/org_a/members/bob failed: permission_denied
+  PASS membership writes are backend-only, including by owners
+
+Invite records are backend-only
+  PASS a client cannot read an invite record
+[2026-09-08T07:14:37.674Z]  @firebase/database: FIREBASE WARNING: set at /invites/new_token failed: permission_denied
+  PASS a client cannot create an invite record
+[2026-09-08T07:14:37.721Z]  @firebase/database: FIREBASE WARNING: set at /invites/token_bob failed: permission_denied
+  PASS a client cannot consume an invite directly
+
+Tenant isolation follows server-created membership
+  PASS anonymous users cannot read tenant data
+  PASS another tenant cannot read tenant data
+  PASS a server-created member can read tenant data
+  PASS a server-created member can write tenant data
+
+Private and operational trees
+  PASS user profiles are private
+  PASS the event inbox is backend-only
+[2026-09-08T07:14:38.125Z]  @firebase/database: FIREBASE WARNING: set at /external_events/org_a/event_2 failed: permission_denied
+  PASS clients cannot forge event inbox records
+  PASS triage_items reads are API-only, even for tenant members
+[2026-09-08T07:14:38.222Z]  @firebase/database: FIREBASE WARNING: set at /triage_items/org_a/forged failed: permission_denied
+  PASS triage_items cannot be forged across tenants
+  PASS schedules reads are API-only, even for tenant members
+[2026-09-08T07:14:38.290Z]  @firebase/database: FIREBASE WARNING: set at /schedules/org_a/forged failed: permission_denied
+  PASS schedules cannot be forged across tenants
+  PASS schedule_runs reads are API-only, even for tenant members
+[2026-09-08T07:14:38.391Z]  @firebase/database: FIREBASE WARNING: set at /schedule_runs/org_a/forged failed: permission_denied
+  PASS schedule_runs cannot be forged across tenants
+  PASS scheduler_health reads are API-only, even for tenant members
+[2026-09-08T07:14:38.488Z]  @firebase/database: FIREBASE WARNING: set at /scheduler_health/org_a/forged failed: permission_denied
+  PASS scheduler_health cannot be forged across tenants
+  PASS service_setup_drafts reads are API-only, even for tenant members
+[2026-09-08T07:14:38.607Z]  @firebase/database: FIREBASE WARNING: set at /service_setup_drafts/org_a/forged failed: permission_denied
+  PASS service_setup_drafts cannot be forged across tenants
+  PASS communication_cursors reads are API-only, even for tenant members
+[2026-09-08T07:14:38.707Z]  @firebase/database: FIREBASE WARNING: set at /communication_cursors/org_a/forged failed: permission_denied
+  PASS communication_cursors cannot be forged across tenants
+  PASS ask_resolutions reads are API-only, even for tenant members
+[2026-09-08T07:14:38.804Z]  @firebase/database: FIREBASE WARNING: set at /ask_resolutions/org_a/forged failed: permission_denied
+  PASS ask_resolutions cannot be forged across tenants
+  PASS communication_delivery reads are API-only, even for tenant members
+[2026-09-08T07:14:38.902Z]  @firebase/database: FIREBASE WARNING: set at /communication_delivery/org_a/forged failed: permission_denied
+  PASS communication_delivery cannot be forged across tenants
+  PASS server activity is backend-only
+
+30 passed, 0 failed
+
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  database: Stopping Database Emulator
+!  Database Emulator has exited upon receiving signal: SIGINT
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

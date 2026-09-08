@@ -6,6 +6,8 @@ import { COACHING_TRANSIENT_KEYS } from '../../lib/projectTemplates';
 import { coachingRetryPolicy } from '../../lib/coachingRetry';
 import type { ServiceSetupInput } from '../../lib/serviceSetup';
 import { ServiceProjectWizard } from '../ServiceProjectWizard';
+import { EmailAuthoritySettings } from '../EmailAuthoritySettings';
+import { ThreadRegister } from '../ThreadRegister';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -846,7 +848,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="communications-send-policy">Outbound send policy</label>
+                  <EmailAuthoritySettings key={currentOrgId} />
+                  <label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="communications-send-policy">Automatic reply policy</label>
                   <select id="communications-send-policy" value={settings.communications?.sendPolicy || 'draft_only'} onChange={e => updateCommunications({ sendPolicy: e.target.value as NonNullable<AppSettings['communications']>['sendPolicy'] })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm">
                     <option value="draft_only">Draft only</option><option value="allow_approved_send">Allow approved sends</option><option value="automatic">Automatic sends</option>
                   </select>
@@ -861,6 +864,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   })}
                 </div>
               </fieldset>
+              <ThreadRegister key={currentOrgId} orgId={currentOrgId} projects={projects} people={integrationStatus.people} />
               <p className="text-xs text-slate-500 max-w-3xl">These are non-secret tenant settings. API keys, webhook secrets, and scheduler secrets remain backend environment variables and are never stored here.</p>
             </div>
           </div>

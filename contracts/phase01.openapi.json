@@ -1,0 +1,273 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HyperFlow Phase 01 authorization supplement",
+    "version": "1.0.0",
+    "description": "Supplement to docs/API.md; not a complete API listing."
+  },
+  "paths": {
+    "/api/send-email": {
+      "post": {
+        "description": "Authenticated organization and project required. Backend email grant must allow_send; draft-only returns 403.",
+        "security": [
+          {
+            "FirebaseBearer": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted communication; not proof of delivery"
+          },
+          "403": {
+            "description": "Request denied or configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request denied or configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/execute": {
+      "post": {
+        "description": "Verify project belongs to authenticated organization before task execution. Email send actions respect backend ceiling.",
+        "security": [
+          {
+            "FirebaseBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "taskType",
+                  "correlation"
+                ],
+                "properties": {
+                  "taskType": {
+                    "type": "string"
+                  },
+                  "correlation": {
+                    "type": "object",
+                    "required": [
+                      "projectId"
+                    ],
+                    "properties": {
+                      "projectId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "orgId": {
+                        "type": "string",
+                        "description": "Selector verified against caller membership"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task result; pending flag may indicate asynchronous work"
+          },
+          "400": {
+            "description": "Request denied or configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request denied or configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request denied or configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/communications/email-policy": {
+      "get": {
+        "description": "Read authenticated organization email authority.",
+        "security": [
+          {
+            "FirebaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current effective mode, configuredMode and opaque version"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient authority"
+          },
+          "409": {
+            "description": "Stale version; reload"
+          },
+          "503": {
+            "description": "Policy unavailable"
+          }
+        }
+      },
+      "post": {
+        "description": "Save mode with current opaque version. Requires organization owner/admin in HyperFlow, or tenant:policy:manage plus communications:write in Communications.",
+        "security": [
+          {
+            "FirebaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current effective mode, configuredMode and opaque version"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient authority"
+          },
+          "409": {
+            "description": "Stale version; reload"
+          },
+          "503": {
+            "description": "Policy unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mode",
+                  "version"
+                ],
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "draft_only",
+                      "allow_send"
+                    ]
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "FirebaseBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

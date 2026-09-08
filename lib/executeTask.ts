@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { createCommunicationsClient } from './communications/client.js';
+import { CommunicationsApiError } from './communications/errors.js';
 import type { CommunicationCorrelation, CommunicationResult, HyperFlowCallOverrides } from './communications/types.js';
 import { safeWebhookFetch } from './safeWebhook.js';
 import { normalizeTaskType, TASK_TYPES } from './taskTypes.js';
@@ -273,7 +274,8 @@ export async function executeTask(
       };
     } catch (error: any) {
       logs.push(`Communications Error: ${error.message}`);
-      return { httpStatus: 500, body: { status: 'error', error: error.message, logs } };
+      return { httpStatus: error instanceof CommunicationsApiError ? error.status || 500 : 500,
+        body: { status: 'error', error: error.message, logs } };
     }
   } else if (taskType === 'send_sms') {
     const smsTo = templateData.to || projectData?.contact_phone || projectData?.phone_number;

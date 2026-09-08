@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { executeTask } from '../../lib/executeTask.js';
 import { readTenantCommunicationsSettings } from '../../lib/serverStore.js';
-import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
+import { ApiAuthError, requireAppMember, requireProjectInTenant } from '../../lib/apiAuth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -11,6 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { taskType, templateFile, projectData, correlation, revision } = req.body || {};
     const requestedOrgId = typeof correlation?.orgId === 'string' ? correlation.orgId : undefined;
     const member = await requireAppMember(req, requestedOrgId);
+    await requireProjectInTenant(member.orgId, correlation?.projectId);
     const trustedCorrelation = { ...correlation, orgId: member.orgId };
     let tenantCommunications: Awaited<ReturnType<typeof readTenantCommunicationsSettings>> | undefined;
     if (trustedCorrelation.orgId) {

@@ -114,9 +114,112 @@ export interface CommunicationListResult {
 }
 
 export interface CommunicationThreadResult {
+  external_project_id?: string | null;
+  correlation?: Partial<CommunicationCorrelation>;
   threadId: string;
   communications: CommunicationResult[];
   [key: string]: unknown;
+}
+
+export type ThreadStatus = 'open' | 'resolved' | 'closed';
+export type ThreadCorrectionReason = 'wrong_person' | 'wrong_project' | 'wrong_topic' | 'time_gap' | 'channel_boundary' | 'duplicate_thread' | 'other';
+
+export interface ThreadScoreSignal {
+  name: string;
+  value: number;
+  detail?: string;
+}
+
+export interface ThreadCandidate {
+  thread_id: string;
+  score: number;
+  confidence: number;
+  excluded: boolean;
+  signals: ThreadScoreSignal[];
+  thread: {
+    thread_id: string;
+    title?: string | null;
+    status?: ThreadStatus;
+    person_id?: string | null;
+    external_project_id?: string | null;
+    project_id?: string | null;
+    primary_channel?: string | null;
+    last_subject?: string | null;
+    last_activity_at?: string | null;
+  };
+}
+
+export interface ThreadRegisterCommunication {
+  communication_id: string;
+  thread_id: string;
+  channel: string;
+  direction?: string;
+  person_id?: string | null;
+  occurred_at?: string;
+  subject?: string | null;
+  summary?: string | null;
+  body?: string | null;
+  resolution?: { confidence?: number; method?: string; candidates?: unknown[] };
+}
+
+export interface ThreadRegisterEntry {
+  thread_id: string;
+  title?: string | null;
+  summary?: string | null;
+  status: ThreadStatus;
+  person_id?: string | null;
+  participant_identity?: string | null;
+  external_project_id?: string | null;
+  project_id?: string | null;
+  primary_channel?: string | null;
+  last_channel?: string | null;
+  last_subject?: string | null;
+  last_activity_at?: string | null;
+  purpose?: CommunicationPurpose;
+  resolution_confidence?: number | null;
+  resolution_method?: string | null;
+  participants: Array<{ person_id?: string | null; identity_value: string; channel: string; role?: string }>;
+  communications: ThreadRegisterCommunication[];
+  communications_count?: number;
+  decisions: Array<{ resolution_id: string; action: string; method: string; confidence?: number; created_at?: string }>;
+  corrections: Array<{ feedback_id: string; reason_code: ThreadCorrectionReason; reason_detail?: string | null; from_thread_id?: string; to_thread_id?: string; active: boolean; created_at?: string }>;
+}
+
+export interface ThreadRegisterOptions {
+  status?: ThreadStatus | 'all';
+  personId?: string;
+  externalProjectId?: string;
+  limit?: number;
+  offset?: number;
+  threadId?: string;
+  communicationOffset?: number;
+}
+
+export interface ThreadCorrectionRequest {
+  thread_id?: string;
+  create_new?: boolean;
+  reason_code: ThreadCorrectionReason;
+  reason_detail?: string;
+  person_id?: string;
+  update_identity?: boolean;
+  external_project_id?: string | null;
+  initiator_id?: string;
+}
+
+export interface ThreadRegisterPatch {
+  title?: string | null;
+  summary?: string | null;
+  status?: ThreadStatus;
+  external_project_id?: string | null;
+  initiator_id?: string;
+}
+
+export interface ThreadCorrectionResult {
+  communication_id: string;
+  from_thread_id: string | null;
+  thread_id: string;
+  resolution_id: string;
+  corrected: boolean;
 }
 
 export interface CommunicationsTriageItem {
@@ -176,6 +279,10 @@ export interface CommunicationsClient {
   listCommunications(tenantId: string, options?: CommunicationListOptions): Promise<CommunicationListResult>;
   getCommunication(tenantId: string, id: string): Promise<CommunicationResult>;
   getThread(tenantId: string, threadId: string): Promise<CommunicationThreadResult>;
+  listThreadRegister(tenantId: string, options?: ThreadRegisterOptions): Promise<{ data: ThreadRegisterEntry[]; count: number; has_more?: boolean }>;
+  getThreadCandidates(tenantId: string, communicationId: string): Promise<{ communication_id: string; current_thread_id: string | null; candidates: ThreadCandidate[] }>;
+  correctThread(tenantId: string, communicationId: string, request: ThreadCorrectionRequest): Promise<ThreadCorrectionResult>;
+  updateThread(tenantId: string, threadId: string, patch: ThreadRegisterPatch): Promise<Record<string, unknown>>;
   listTriageItems(tenantId: string, options?: CommunicationListOptions): Promise<CommunicationsTriageItem[]>;
   setTriageDisposition(tenantId: string, itemId: string, disposition: string): Promise<CommunicationsTriageItem>;
   resolveAsk(tenantId: string, askId: string, communicationId: string): Promise<ResolveAskResult>;

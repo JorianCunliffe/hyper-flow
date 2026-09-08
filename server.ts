@@ -11,12 +11,16 @@ import { advanceServerFlow, readAskByToken, respondToAsk } from "./lib/serverFlo
 import { externalEventHttpStatus, receiveExternalEvent } from "./lib/externalEvents";
 import { parseSignedJsonBody, verifyCommunicationsSignatureV2, verifyIncomingCommunicationsSignature } from "./lib/communications/webhook";
 import { createCommunicationsClient } from "./lib/communications/client";
+import { accountEmailPolicy } from "./lib/communications/accountEmailPolicy";
+import { CommunicationsApiError } from "./lib/communications/errors";
+import { handleThreadRegisterRequest, threadRegisterErrorStatus } from './lib/communications/threadRegister';
 import {
   consumeOrganizationInvite,
   consumeOAuthStateNonce,
   createOrganizationForUser,
   createOrganizationInvite,
   deleteTenantSchedule,
+  findProject,
   isServerStoreConfigured,
   listMailboxConnectionRefs,
   listCoachingSessions,
@@ -46,7 +50,7 @@ import {
   replayAgentInboxJob,
   verifyFirebaseIdToken
 } from "./lib/serverStore";
-import { ApiAuthError, bearerToken, hasSharedSecret, requireAppMember, requireFirebaseIdentity } from './lib/apiAuth';
+import { ApiAuthError, bearerToken, hasSharedSecret, requireAppMember, requireFirebaseIdentity, requireProjectInTenant } from './lib/apiAuth';
 import { renderAskForm } from './lib/askForm';
 import { failedScheduleResults, runTenantSchedule, tickSchedules } from './lib/scheduler';
 import type { TriageDisposition } from './types';
@@ -129,6 +133,22 @@ async function startServer() {
         .json({ error: error?.message || 'Request failed' });
     }
   });
+
+  for (const [route, action] of [
+    ['/api/thread-register', 'thread_register'],
+    ['/api/thread-register/candidates', 'thread_candidates'],
+    ['/api/thread-register/correction', 'thread_correction'],
+    ['/api/thread-register/thread', 'thread_update']
+  ]) {
+    app.all(route, async (req, res) => {
+      try {
+        const member = await requireAppMember(req as any);
+        return res.status(200).json(await handleThreadRegisterRequest(action, req, member));
+      } catch (error: any) {
+        return res.status(error instanceof ApiAuthError ? error.status : threadRegisterErrorStatus(error)).json({ error: error?.message || 'Thread register request failed' });
+      }
+    });
+  }
 
   app.get('/api/communications/status', async (req, res) => {
     try {
@@ -598,11 +618,22 @@ async function startServer() {
     }
   });
 
+  app.all('/api/communications/email-policy', async (req, res) => {
+    try {
+      const member = await requireAppMember(req as any);
+      return res.status(200).json(await accountEmailPolicy(member, req.method, req.body));
+    } catch (error: any) {
+      return res.status(error instanceof ApiAuthError || error instanceof CommunicationsApiError ? error.status || 500 : 500)
+        .json({ error: error.message });
+    }
+  });
+
   app.post("/api/send-email", async (req, res) => {
     try {
       const member = await requireAppMember(req as any);
       const { to, subject, html, text, projectId, taskId, runId } = req.body || {};
       if (!projectId || !taskId || !runId) throw new Error('projectId, taskId and runId are required');
+      if (!await findProject(member.orgId, String(projectId))) throw new ApiAuthError(403, 'Project does not belong to this organization');
       const communications = await readTenantCommunicationsSettings(member.orgId);
       if (!communications.defaultEmailIdentity) throw new Error('A tenant Communications email identity is required');
       const result = await createCommunicationsClient().sendEmail({
@@ -627,7 +658,7 @@ async function startServer() {
       res.status(202).json({ communication: result });
     } catch (error: any) {
       console.error(error);
-      res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
+      res.status(error instanceof ApiAuthError || error instanceof CommunicationsApiError ? error.status || 500 : 500).json({ error: error?.message || String(error) });
     }
   });
 
@@ -635,6 +666,7 @@ async function startServer() {
     try {
       const { taskType, templateFile, projectData, correlation, revision } = req.body;
       const member = await requireAppMember(req as any, typeof correlation?.orgId === 'string' ? correlation.orgId : undefined);
+      await requireProjectInTenant(member.orgId, correlation?.projectId);
       const trustedCorrelation = { ...correlation, orgId: member.orgId };
       let tenantCommunications: Awaited<ReturnType<typeof readTenantCommunicationsSettings>> | undefined;
       if (trustedCorrelation.orgId && isServerStoreConfigured()) {

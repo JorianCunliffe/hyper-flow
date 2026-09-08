@@ -5,6 +5,7 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/communications/email-policy", "destination": "/api/communications/status?action=email_policy" },
     { "source": "/forms/ask/:token", "destination": "/api/asks/:token" },
     { "source": "/api/schedules/run", "destination": "/api/schedules?action=run" },
     { "source": "/api/schedules/tick", "destination": "/api/schedules?action=tick" },
@@ -24,6 +25,10 @@
     { "source": "/api/agent/voice-context", "destination": "/api/events?action=voice_context" },
     { "source": "/api/operations", "destination": "/api/communications/status?action=operations" },
     { "source": "/api/operations/agent-jobs/replay", "destination": "/api/communications/status?action=operations_replay" },
+    { "source": "/api/thread-register", "destination": "/api/communications/status?action=thread_register" },
+    { "source": "/api/thread-register/candidates", "destination": "/api/communications/status?action=thread_candidates" },
+    { "source": "/api/thread-register/correction", "destination": "/api/communications/status?action=thread_correction" },
+    { "source": "/api/thread-register/thread", "destination": "/api/communications/status?action=thread_update" },
     { "source": "/api/gemini/brainstormSubtasks", "destination": "/api/gemini?action=brainstormSubtasks" },
     { "source": "/api/gemini/generateProjectStructure", "destination": "/api/gemini?action=generateProjectStructure" }
   ],
