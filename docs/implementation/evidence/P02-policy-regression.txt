@@ -1,0 +1,17 @@
+✔ shared authority contract preserves explicit per-tenant grants and safe HyperFlow default (1.7107ms)
+✔ invalid server configuration fails closed without exposing configuration (0.2485ms)
+✔ all email purposes reject before dispatch even with caller supplied approval (2.7806ms)
+✔ drafts, SMS and calls remain available under draft-only email (0.7995ms)
+✔ send-only task and Ask remain unsuccessful without dispatch (1.6153ms)
+✔ project scope lookup uses authenticated organization and rejects absent/foreign project (1.0497ms)
+✔ only organization owners and admins can change account email authority (0.2131ms)
+✔ invalid policy response fails closed before dispatch (0.2942ms)
+✔ account API displays the effective HyperFlow operator restriction (0.1656ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 790.5272

@@ -1,0 +1,39 @@
+▶ applyActionRun
+  ✔ merges output into projectData on success (1.5389ms)
+  ✔ does NOT merge output for a pending run (0.118ms)
+  ✔ does NOT merge output for a failed run (0.1161ms)
+  ✔ ignores non-object output rather than corrupting projectData (0.1243ms)
+  ✔ archives the previous run when a new one starts (0.2074ms)
+  ✔ resolving a pending run updates it in place instead of archiving a duplicate (0.1297ms)
+✔ applyActionRun (2.8786ms)
+▶ runActionNode
+  ✔ passes correlation ids to the executor so callbacks can find the run (0.4261ms)
+  ✔ a thrown executor becomes a failed run, not an exception (0.2258ms)
+  ✔ a non-action node is rejected without calling the executor (0.1822ms)
+✔ runActionNode (1.0224ms)
+▶ resolvePendingRun
+  ✔ resolves by external id and merges the callback output (0.3034ms)
+  ✔ resolves by run id (0.0847ms)
+  ✔ returns null when the run is already resolved — a duplicate callback is a no-op (0.0618ms)
+  ✔ a terminal event sharing a thread does not approve an Ask; stale and duplicate runs do nothing (0.0929ms)
+  ✔ returns null for an unknown external id (0.0542ms)
+  ✔ a failed callback does not write project data (0.1212ms)
+  ✔ findNodeByRun does not match a node with no run at all (0.0524ms)
+✔ resolvePendingRun (0.9212ms)
+▶ advanceProjectFlow
+  ✔ runs a ready auto-execute action and folds its output into project data (0.6463ms)
+  ✔ an action output satisfies a downstream decision in the same call (0.2728ms)
+  ✔ a pending action stops the flow there and is reported as pending (0.1783ms)
+  ✔ a pending action is never re-dispatched on a later advance (0.101ms)
+  ✔ a failed action does not block a later retry but stops this pass (0.1995ms)
+  ✔ reports an idle flow rather than an empty log (0.0774ms)
+  ✔ respects maxRounds so a misconfigured flow cannot spin forever (0.3683ms)
+✔ advanceProjectFlow (1.9832ms)
+ℹ tests 23
+ℹ suites 4
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 347.7006

@@ -143,6 +143,17 @@ describe('resolvePendingRun', () => {
     assert.equal(res, null);
   });
 
+  test('a terminal event sharing a thread does not approve an Ask; stale and duplicate runs do nothing', () => {
+    const p = pendingProject();
+    p.milestones[0].asks = [{ id: 'ask_thread_shared', status: 'open', responses: [], kind: 'approval' } as any];
+    const outcome = { status: 'success' as const, output: { thread_id: 'thread_shared', decision: 'approved' }, resolvedBy: 'event:communications' };
+    assert.equal(resolvePendingRun(p, { runId: 'old_run', externalId: 'old_communication' }, outcome), null);
+    const resolved = resolvePendingRun(p, { runId: 'r1', externalId: 'call_1' }, outcome)!;
+    assert.equal(resolved.project.milestones[0].asks![0].status, 'open');
+    assert.deepEqual(resolved.project.milestones[0].asks![0].responses, []);
+    assert.equal(resolvePendingRun(resolved.project, { runId: 'r1', externalId: 'call_1' }, outcome), null);
+  });
+
   test('returns null for an unknown external id', () => {
     const res = resolvePendingRun(pendingProject(), { externalId: 'nope' }, { status: 'success', resolvedBy: 'event:communications' });
     assert.equal(res, null);

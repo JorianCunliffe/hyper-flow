@@ -7,6 +7,7 @@ import { coachingRetryPolicy } from '../../lib/coachingRetry';
 import type { ServiceSetupInput } from '../../lib/serviceSetup';
 import { ServiceProjectWizard } from '../ServiceProjectWizard';
 import { EmailAuthoritySettings } from '../EmailAuthoritySettings';
+import { ThreadRegister } from '../ThreadRegister';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -863,6 +864,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   })}
                 </div>
               </fieldset>
+              <ThreadRegister key={currentOrgId} orgId={currentOrgId} projects={projects} people={integrationStatus.people} />
               <p className="text-xs text-slate-500 max-w-3xl">These are non-secret tenant settings. API keys, webhook secrets, and scheduler secrets remain backend environment variables and are never stored here.</p>
             </div>
           </div>
