@@ -2,7 +2,7 @@
 
 Last updated: 8 September 2026.
 
-**Current state:** Phases 01–04 are merged and deployed. Phase 04's live acceptance found and fixed a cold-instance transaction issue; its controlled review lifecycle now passes in production. Phase 05 is in progress. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
+**Current state:** Phases 01–05 are merged and deployed. Phase 05's controlled live meeting import, source-to-Ask acceptance, duplicate retry and correction checks pass. Phase 06 is next. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
 
 **Current scope:** two existing applications. Communications Service retains its existing memory, search and enrichment. No memory extraction or third memory application.
 
@@ -34,7 +34,7 @@ Last updated: 8 September 2026.
 | P02 | Canonical cross-channel threads and register | Merged and deployed; SMS/call receipt confirmed | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
 | P03 | Safe use of existing Communications memory | Merged and deployed | P02 | [P03 record](implementation/P03.md); later baseline in [P04](implementation/P04.md) |
 | P04 | HyperFlow commitments and Ask lifecycle | Merged, deployed and controlled live lifecycle verified | P03 | [P04 record](implementation/P04.md); [release and correction](implementation/P04_RELEASE.md) |
-| P05 | Transcribed meeting ingestion and enrichment | In progress | P03, P04 | [P05 record](implementation/P05.md) |
+| P05 | Transcribed meeting ingestion and enrichment | Released; controlled live acceptance verified | P03, P04 | [P05 record](implementation/P05.md) |
 | P06 | Visible reusable flows from requests | Not started | P04; P05 for meeting inputs | No phase record yet |
 | P07 | CEO cockpit, follow-up and receptionist | Not started | P06, P02–P04; P05 for meeting briefs | No phase record yet |
 | P08 | Diary and calendar execution | Not started | P07, P01 | No phase record yet |
@@ -47,7 +47,7 @@ Replace “No phase record yet” with links to the actual per-app records when 
 
 ## Next goal
 
-Continue Phase 05, then repeat implementation, verification and release through Phase 12 under the user's continuing authorization. Preserve the application boundaries and existing channel authority. Generic transcript upload is the initial source; selected calendar/social/CMS/provider details are pending user clarification. Missing provider authority must not be replaced with invented grants or reported as passed live acceptance.
+Implement Phase 06, then repeat implementation, verification and release through Phase 12 under the user's continuing authorization. Preserve the application boundaries and existing channel authority. Generic transcript upload is the initial source; selected calendar/social/CMS/provider details are pending user clarification. Missing provider authority must not be replaced with invented grants or reported as passed live acceptance.
 
 ## Decision log
 
