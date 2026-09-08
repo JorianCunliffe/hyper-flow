@@ -61,6 +61,7 @@ test("Phase 05: transcript to scoped evidence to accepted Ask, with duplicate an
       handleMeetingRequest({ method: "POST", body }, member, {
         client,
         projects,
+        audit: async()=>{},
       }) as Promise<any>;
     const first = await ingest(input);
     const retry = await ingest(input);

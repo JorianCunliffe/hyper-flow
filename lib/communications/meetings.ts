@@ -1,6 +1,7 @@
 import { HttpCommunicationsClient } from "./client.js";
 import { CommunicationsApiError } from "./errors.js";
-import { listTenantProjects } from "../serverStore.js";
+import { listTenantProjects, appendActivityLog } from "../serverStore.js";
+import {randomUUID} from 'node:crypto';
 import type { MeetingInput, MeetingRecord } from "./meetingTypes.js";
 export class MeetingRequestError extends Error {
   constructor(
@@ -20,6 +21,7 @@ export async function handleMeetingRequest(
       "listMeetings" | "getMeeting" | "findMeeting" | "importMeeting"
     >;
     projects?: typeof listTenantProjects;
+    audit?: typeof appendActivityLog;
   } = {},
 ) {
   const client = dependencies.client || new HttpCommunicationsClient();
@@ -102,9 +104,17 @@ export async function handleMeetingRequest(
       duplicateDecision: body.duplicateDecision,
       duplicateReason: body.duplicateReason,
     };
-    const receipt = await client.importMeeting(member.orgId, input, member.uid);
+    // Communications audits its authenticated service client; HyperFlow audits
+    // the Firebase user here. Do not require a broader actor-assertion grant.
+    const receipt = await client.importMeeting(member.orgId, input);
     const item = await client.getMeeting(member.orgId, receipt.id);
     assertPermitted(item);
+    await (dependencies.audit || appendActivityLog)(member.orgId, {
+      id: randomUUID(), projectId: input.topics[0].projectId, taskId: receipt.id,
+      taskName: 'Meeting import', action: receipt.duplicate ? 'updated' : 'created',
+      userId: member.uid, timestamp: Date.now(),
+      details: JSON.stringify({owner:'communications-service',meetingId:receipt.id,version:receipt.version,duplicate:receipt.duplicate,projectIds:input.topics.map(t=>t.projectId)})
+    });
     return { item, receipt };
   } catch (error) {
     if (error instanceof CommunicationsApiError) {

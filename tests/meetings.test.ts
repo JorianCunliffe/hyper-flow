@@ -4,7 +4,7 @@ import { handleMeetingRequest } from "../lib/communications/meetings";
 import { CommunicationsApiError } from "../lib/communications/errors";
 function fixture() {
   let existing: any = null,
-    sent: any = null;
+    sent: any = null, audit: any = null;
   const row: any = {
     id: "meeting",
     metadata: {
@@ -36,12 +36,13 @@ function fixture() {
     handleMeetingRequest(
       { method, body, query },
       { orgId: "tenant", uid: "ceo" },
-      { client, projects: async () => [{ id: "alpha" }] as any },
+      { client, projects: async () => [{ id: "alpha" }] as any, audit: async(org,row)=>{audit={org,row};} },
     );
   return {
     request,
     client,
     row,
+    get audit(){return audit;},
     setExisting(value: any) {
       existing = value;
     },
@@ -62,7 +63,9 @@ test("meeting imports derive tenant, actor and project authority from authentica
     approved: true,
   });
   assert.equal(f.sent.org, "tenant");
-  assert.equal(f.sent.actor, "ceo");
+  assert.equal(f.sent.actor, undefined);
+  assert.equal(f.audit.row.userId, 'ceo');
+  assert.equal(f.audit.org, 'tenant');
   assert.deepEqual(f.sent.input.allowedProjectIds, ["alpha"]);
   assert.equal(f.sent.input.approved, undefined);
   assert.equal(f.sent.input.source, "generic");

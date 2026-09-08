@@ -69,8 +69,8 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     try{return await this.rawRequest(`/v1/meetings/by-source?${new URLSearchParams({source,externalId})}`,{method:'GET',tenantId});}
     catch(error){if(error instanceof CommunicationsApiError && error.status===404)return null;throw error;}
   }
-  async importMeeting(tenantId:string,input:MeetingInput,actor:string):Promise<{id:string;version:number;duplicate:boolean}> {
-    this.requireTenant(tenantId);return this.rawRequest('/v1/meetings',{method:'POST',tenantId,body:{...input,initiator_id:actor}});
+  async importMeeting(tenantId:string,input:MeetingInput):Promise<{id:string;version:number;duplicate:boolean}> {
+    this.requireTenant(tenantId);return this.rawRequest('/v1/meetings',{method:'POST',tenantId,body:input});
   }
 
   async getMemoryContext(tenantId: string, input: MemoryRequest): Promise<MemoryEnvelope> {
