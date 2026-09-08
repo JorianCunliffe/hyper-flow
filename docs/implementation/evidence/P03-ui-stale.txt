@@ -1,0 +1,39 @@
+Local synthetic UI fixture â€” no real accounts, messages or API writes.
+
+Communication context
+
+Review source-linked context and promise evidence across your accessible projects. Private sources are excluded. Suggested dates need confirmation; these are not tracked obligations.
+
+Search communications
+Person
+Conversation thread
+Project
+Meeting
+Loose ends
+All accessible projects
+Alpha settlement
+Load context
+
+Retrieved 08/09/2026, 19:49:22. Bounded context view; results may not include all history.
+
+Some evidence was withheld because its source changed or is outside this view. Context may be incomplete.
+
+PROMISE EVIDENCE
+
+I will send the valuation Friday.
+
+Suggested date: 2026-09-11T07:00:00Z. Needs confirmation.
+
+Source references (1)
+
+EMAIL
+
+I will send the valuation Friday.
+
+Source references (1)
+{
+  "kind": "search",
+  "id": "",
+  "projectId": "",
+  "query": "stale"
+}

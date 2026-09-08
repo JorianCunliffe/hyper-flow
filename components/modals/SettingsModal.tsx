@@ -1,3 +1,4 @@
+import { MemoryContextPanel } from '../MemoryContextPanel';
 import React, { useEffect, useRef, useState } from 'react';
 import { Settings, X, Plus, Tags, Building, User, CheckCircle2, Type as LucideType, Download, Upload, AlertTriangle, Mail, Phone, Briefcase, RefreshCw, Cloud, CloudOff, Bot, Link2 } from 'lucide-react';
 import { AppSettings, CommunicationsPersonRef, MailboxConnectionRef, Project, TeamMemberDetails, TenantAgentProfile, TenantSchedule, WorkspaceConnectionRef } from '../../types';
@@ -864,6 +865,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   })}
                 </div>
               </fieldset>
+              <MemoryContextPanel key={`memory-${currentOrgId}`} orgId={currentOrgId} projects={projects} people={integrationStatus.people} />
               <ThreadRegister key={currentOrgId} orgId={currentOrgId} projects={projects} people={integrationStatus.people} />
               <p className="text-xs text-slate-500 max-w-3xl">These are non-secret tenant settings. API keys, webhook secrets, and scheduler secrets remain backend environment variables and are never stored here.</p>
             </div>
