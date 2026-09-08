@@ -1,0 +1,21 @@
+(node:26432) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ artifact inputs reconcile current accepted states and exclusive deadline cutoff (3.0539ms)
+✔ artifact generation requires exact input approval and separate exact-file review (36.7095ms)
+✔ concurrent generation and repeated requests retain one immutable output (9.6889ms)
+✔ tenant isolation and file integrity fail closed (9.7597ms)
+✔ saved artifact is reconciled after job receipt persistence fails without regenerating (8.3981ms)
+✔ template registry preserves immutable versions and rejects stale writers and nonadministrators (0.7894ms)
+✔ all Office packages contain editable source references and typed workbook formulas (66.3123ms)
+✔ Firebase omitted empty arrays normalize without changing the report meaning (7.8073ms)
+✔ Google report export creates one tab atomically and preserves subsequent manual edits (12.7768ms)
+✔ spreadsheet export requires distinct grant and designated approval; revoked grants stop dispatch (8.0979ms)
+✔ PNG branding stays embedded in editable slides and rejects unsupported or unreadable assets (19.2061ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2211.4431

@@ -277,12 +277,26 @@ export async function renderArtifact(rawJob: ArtifactJob) {
         cover.slice(p, p + 13),
       );
     for (const section of sections) {
-      const lines = section.paragraphs.flatMap((t) => [
-        ...wrapSlideText(t),
-        "",
-      ]);
-      for (let p = 0; p < lines.length; p += 13)
-        add(section.title + (p ? " continued" : ""), lines.slice(p, p + 13));
+      let page: string[] = [],
+        continuation = false;
+      const flush = () => {
+        while (page.length && !page[page.length - 1].trim()) page.pop();
+        if (page.some((line) => line.trim())) {
+          add(section.title + (continuation ? " continued" : ""), page);
+          continuation = true;
+        }
+        page = [];
+      };
+      for (const paragraph of section.paragraphs) {
+        const lines = wrapSlideText(paragraph);
+        if (lines.length <= 13 && page.length + lines.length > 13) flush();
+        for (const line of lines) {
+          if (page.length === 13) flush();
+          page.push(line);
+        }
+        if (page.length && page.length < 13) page.push("");
+      }
+      flush();
     }
     if (slideCount > 100)
       throw new ArtifactError(
