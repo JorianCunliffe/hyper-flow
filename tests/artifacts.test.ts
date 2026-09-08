@@ -110,7 +110,11 @@ function fixture() {
     projects: async () => [{ id: "alpha", name: "Alpha project" }] as any,
     membership: async () => ({ role: "owner" }) as any,
     snapshot: async () => structuredClone(snapshot),
-    memory: async (_org, request) => { assert.equal(request.kind,"evidence"); assert.deepEqual(request.allowed_project_ids,["alpha"]); return structuredClone(memory); },
+    memory: async (_org, request) => {
+      assert.equal(request.kind, "evidence");
+      assert.deepEqual(request.allowed_project_ids, ["alpha"]);
+      return structuredClone(memory);
+    },
     render: async (j: ArtifactJob) => {
       renders++;
       return renderArtifact(j);
@@ -327,6 +331,7 @@ test("all Office packages contain editable source references and typed workbook 
   const f = fixture();
   for (const format of ["docx", "pptx", "xlsx"]) {
     const j = (await f.prepare(format, "format-" + format)).item;
+    if (format === "pptx") j.inputs.evidence[0].text = Array.from({length:12},(_,i)=>`Evidence line ${i+1}`).join("\n");
     const result = await renderArtifact(j);
     assert.equal(hash(result.bytes), result.receipt.sha256);
     const zip = await JSZip.loadAsync(result.bytes, { checkCRC32: true });
@@ -339,6 +344,16 @@ test("all Office packages contain editable source references and typed workbook 
     if (format === "pptx") {
       const slides = zip.file(/^ppt\/slides\/slide\d+\.xml$/);
       assert.ok(slides.length >= 5);
+      for (const slide of slides) {
+        const xml = await slide.async("string");
+        const bodies = [...xml.matchAll(/<p:sp>[^]*?<\/p:sp>/g)];
+        assert.ok(bodies.length >= 3);
+        assert.match(
+          bodies[1][0],
+          /<a:t>[^<\s]/,
+          "Every report slide has body content",
+        );
+      }
       assert.match(
         (await Promise.all(slides.map((s) => s.async("string")))).join(""),
         /comm_one/,

@@ -1,0 +1,22 @@
+
+> hyperflow@0.0.0 build
+> vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs
+
+vite v6.4.3 building for production...
+transforming...
+✓ 2429 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                    2.64 kB │ gzip:   1.08 kB
+dist/assets/index-B15IphR4.js  1,633.34 kB │ gzip: 412.60 kB
+✓ built in 9.24s
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+  dist\server.cjs      554.2kb
+  dist\server.cjs.map    1.0mb
+
+Done in 54ms
