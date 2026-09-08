@@ -2,7 +2,7 @@
 
 Last updated: 8 September 2026.
 
-**Current state:** Phase 00 baseline accepted. Phases 01 and 02 are implemented and locally verified; Phase 01/02 PRs are merged into both main branches. Runtime rollout remains a separate gate. Baseline checks passed; production provider/schema readiness remains partly unverified as recorded below.
+**Current state:** Phases 01–03 and the subsequent communications repairs are merged and deployed. Phase 04 is implemented and locally verified on its review branch; its production rollout is pending. SMS and call receipt were confirmed by the user. The later transcription teardown repair has not had a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
 
 **Current scope:** two existing applications. Communications Service retains its existing memory, search and enrichment. No memory extraction or third memory application.
 
@@ -30,10 +30,10 @@ Last updated: 8 September 2026.
 | Phase | Outcome | Status | Dependencies | Evidence |
 |---|---|---|---|---|
 | P00 | Current baseline and mismatch register | Baseline accepted | None | [HyperFlow record](implementation/P00.md); Communications records in each checkout's `docs/implementation/P00.md` |
-| P01 | Ownership, authority and API/event contracts | Merged to main; runtime verification pending | P00 | [Record](implementation/P01.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/2); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/2) |
-| P02 | Canonical cross-channel threads and register | Merged to main; locally verified; runtime acceptance pending | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
-| P03 | Safe use of existing Communications memory | Implemented; locally verified; rollout pending | P02 | [P03 record](implementation/P03.md) |
-| P04 | HyperFlow commitments and Ask lifecycle | Not started | P03 | No phase record yet |
+| P01 | Ownership, authority and API/event contracts | Merged and deployed; later repair caveat above | P00 | [Record](implementation/P01.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/2); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/2) |
+| P02 | Canonical cross-channel threads and register | Merged and deployed; SMS/call receipt confirmed | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
+| P03 | Safe use of existing Communications memory | Merged and deployed | P02 | [P03 record](implementation/P03.md); later baseline in [P04](implementation/P04.md) |
+| P04 | HyperFlow commitments and Ask lifecycle | Implemented; local acceptance passed; rollout pending | P03 | [P04 record](implementation/P04.md) |
 | P05 | Transcribed meeting ingestion and enrichment | Not started | P03, P04 | No phase record yet |
 | P06 | Visible reusable flows from requests | Not started | P04; P05 for meeting inputs | No phase record yet |
 | P07 | CEO cockpit, follow-up and receptionist | Not started | P06, P02–P04; P05 for meeting briefs | No phase record yet |
@@ -47,7 +47,7 @@ Replace “No phase record yet” with links to the actual per-app records when 
 
 ## Next goal
 
-Phase 01 and Phase 02 are merged into both main branches. Deploy Communications and apply missing migrations through 020; its health still reports the older v2.3.0 build. Verify HyperFlow automatic production deployment and then authenticated cross-service acceptance. Preserve account email grants; no live communications were sent during integration. Phase 03 is implemented and locally verified on its own branches; see the P03 record. Review/land it, deploy Communications first, then verify scoped context with real membership. Phase 04 remains unstarted.
+Review and land Phase 04, deploy HyperFlow, then verify Obligations with a real organization member and controlled records. Communications remains at the compatible deployed contract; no Phase 04 release there is required. Preserve email policy and channel grants. Phase 05 has not started. The fresh live-call check for the earlier transcription repair remains distinct from Phase 04 acceptance; do not repeat provider calls as part of this phase.
 
 ## Decision log
 

@@ -4,7 +4,29 @@ Phase 01: direct task/email requests require a project in the authenticated orga
 
 This reference describes the HTTP handlers under `api/`, their local Express equivalents, and the Communications Service requests emitted by the current HyperFlow client.
 
-## Conventions
+## Phase 04 obligations API
+
+`/api/commitments` requires the normal Firebase bearer token and selected organization membership on Express and Vercel. Organization and actor come from authentication, never a body override. See [state and authority contract](architecture/COMMITMENTS.md).
+
+| Method | Inputs | Result |
+|---|---|---|
+| GET | Optional `id` | `{item,viewerUid}` for one scoped obligation. |
+| GET | `view=all\|owing\|owed`, optional `projectId`, `party`, `after` | `{data,next,viewerUid}`. Party is `user:<uid>` or `contact:<canonicalId>`; owing/owed use the authenticated member. Pages contain at most 50 underlying records before filtering. Follow `next` even on an empty filtered page. |
+| GET | `view=parties` | Current member and available canonical contact choices. |
+| GET | `view=candidates&projectId=...`, optional `threadId` | `{data,bounded:true}` with stable source IDs, versions and current permitted excerpts. Project discovery shows open extracted promises; thread lookup also covers historical evidence. |
+| POST | `{projectId,terms}` | New manual candidate. This operation is not retry-idempotent; inspect before repeating an uncertain request. |
+| POST | `{projectId,sourceId,threadId?}` | Import/refresh source candidate. Server re-fetches evidence; repeated source/version is idempotent. Caller cannot supply trusted source content or status. |
+| PATCH | `{id,projectId?,expectedVersion,action,...}` | Updated `{item,viewerUid}` after an atomic transition. |
+
+`terms` has `owner`, `beneficiary`, `deliverable`, `criteria`, `dueAt` (ISO instant with explicit offset) and `timezone` (recognized timezone). Missing/invalid fields keep a candidate in clarification. Contact/member references are checked against the organization.
+
+PATCH actions: `terms` includes `terms` and, for renegotiation, `note`; `respond` includes current `askId`, `note`, and `decision=approved|revise|rejected` for an approval Ask, or complete `terms` without a decision for clarification. `progress`, `submit`, `dispute`, `cancel`, and `dismiss` require a note. `follow_up` includes boolean `enabled` and numeric `leadHours` from 0–720. Follow-up is saved for web review, with no automatic delivery. Do not send edited terms alongside an approval: save them first.
+
+Every item includes aggregate `version`, lifecycle, current review and decision history, and derived `timing.overdue/atRisk`. Ask capability tokens and cached raw source wording are omitted. Retrieve current raw evidence through `/api/communications/memory`. Accepted terms/history persist as operational records if the source later changes. Unaccepted source-derived candidates are suppressed or return 409 when source access/version is no longer current.
+
+Errors: 400 invalid input; 403 inaccessible project/party or unauthorized decision; 404 absent scoped record/source; 409 stale aggregate/current Ask/source or invalid lifecycle transition; 405 unsupported method. Source outages fail closed. The API does not release workflow runs or send communications.
+
+## General conventions
 
 - Request and response bodies are JSON unless stated otherwise.
 - HyperFlow request fields use camelCase; the Communications boundary uses snake_case.
