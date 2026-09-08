@@ -1,8 +1,8 @@
 # HyperFlow: Turning Communication into Accountable, Repeatable Work
 
-**Product and architecture paper for Codex**  
-**First customer:** the CEO using HyperFlow to manage their own work and business relationships  
-**Prepared:** 8 September 2026  
+**Product and architecture paper for Codex**
+**First customer:** the CEO using HyperFlow to manage their own work and business relationships
+**Prepared:** 8 September 2026
 **Status:** proposed product model, grounded in the inspected HyperFlow repository; not a declaration of deployed capability
 
 ## Executive proposition
