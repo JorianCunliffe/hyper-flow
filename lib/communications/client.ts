@@ -33,6 +33,9 @@ export interface CommunicationsClientOptions {
 }
 
 export class HttpCommunicationsClient implements CommunicationsClient {
+  async ingestCalendarObservation(tenantId:string,event:Record<string,unknown>):Promise<any>{
+    this.requireTenant(tenantId);return this.rawRequest('/v1/calendar/events',{method:'POST',tenantId,body:event});
+  }
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;

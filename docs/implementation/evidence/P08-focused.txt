@@ -1,0 +1,34 @@
+✔ calendar proposals require exact separate approval, preserve draft-only authority, and execute once with verified receipts (15.6519ms)
+✔ lost calendar response is reconciled by stable provider identity without repeating the write (1.1208ms)
+✔ one calendar lock prevents concurrent HyperFlow bookings and rechecks current availability (1.6833ms)
+✔ changed event revisions and disabled policy block writes; cancellation verifies absence (2.062ms)
+✔ calendar local times reject daylight-saving ambiguity, invalid dates, unsafe series and hidden conflicts (2.3585ms)
+✔ Google adapter sends conditional writes, keeps existing private properties and never supplies guests (2.3145ms)
+✔ calendar authority changes before dispatch and competing connection aliases cannot bypass the calendar lock (1.2245ms)
+✔ an independently created overlapping event is detected after writing without silent rollback or repeated booking (0.7231ms)
+▶ encrypted integration credentials
+  ✔ round-trips with authenticated encryption and rejects tampering (2.5519ms)
+  ✔ fails closed on a human password or truncated deployment value (0.485ms)
+✔ encrypted integration credentials (3.9162ms)
+▶ Google OAuth state and authorization
+  ✔ binds a short-lived state to tenant and user and rejects tampering (0.8817ms)
+  ✔ builds an offline Google consent request for Docs, Sheets, and Drive metadata (0.8283ms)
+  ✔ checks callback membership with user ID before tenant ID in both runtimes (0.6793ms)
+  ✔ claims an unconsumed server nonce even when the transaction cache starts empty (0.5372ms)
+  ✔ rejects replay, expiry, and the wrong user before claiming a nonce (0.4871ms)
+✔ Google OAuth state and authorization (3.6638ms)
+▶ Google Workspace tenant grants
+  ✔ writes imported and model-produced values as data, never formulas (0.3973ms)
+  ✔ uses stable opaque connection IDs and validates allowlisted resources (0.567ms)
+✔ Google Workspace tenant grants (1.0971ms)
+▶ integration connection identity separation
+  ✔ selecting a mailbox cannot overwrite the Communications provider connection (0.6731ms)
+✔ integration connection identity separation (0.7192ms)
+ℹ tests 18
+ℹ suites 4
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 872.2906

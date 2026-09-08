@@ -78,7 +78,7 @@ export const googleWorkspaceScopes = [
   'https://www.googleapis.com/auth/drive.metadata.readonly'
 ];
 
-export const googleAuthorizationUrl = (state: string): string => {
+export const googleAuthorizationUrl = (state: string, calendarAccess?: 'read'|'write'): string => {
   const { clientId } = googleClient();
   const query = new URLSearchParams({
     client_id: clientId,
@@ -87,7 +87,7 @@ export const googleAuthorizationUrl = (state: string): string => {
     access_type: 'offline',
     prompt: 'consent',
     include_granted_scopes: 'true',
-    scope: googleWorkspaceScopes.join(' '),
+    scope: (calendarAccess?['openid','email','https://www.googleapis.com/auth/calendar.calendarlist.readonly',calendarAccess==='write'?'https://www.googleapis.com/auth/calendar.events':'https://www.googleapis.com/auth/calendar.events.readonly']:googleWorkspaceScopes).join(' '),
     state
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${query}`;

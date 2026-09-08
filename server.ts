@@ -3,6 +3,8 @@ import { handleMeetingRequest, MeetingRequestError } from './lib/communications/
 import { handleVisibleFlows, publicFlowResponse } from './lib/visibleFlows/api';
 import { FlowError } from './lib/visibleFlows/model';
 import { handleCockpit } from './lib/cockpit/api';
+import { handleCalendar } from './lib/calendar/api';
+import { CalendarError } from './lib/calendar/model';
 import { handleCommitments } from './lib/commitments/api';
 import { CommitmentError } from './lib/commitments/model';
 import express from "express";
@@ -161,6 +163,10 @@ async function startServer() {
   app.all('/api/cockpit', async(req,res)=>{
     try{return res.status(200).json(publicFlowResponse(await handleCockpit(req,await requireAppMember(req as any))));}
     catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof FlowError?error.status:503).json({error:error.message});}
+  });
+  app.all('/api/calendar', async(req,res)=>{
+    try{return res.status(200).json(await handleCalendar(req,await requireAppMember(req as any)));}
+    catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof CalendarError?error.status:503).json({error:error.message});}
   });
   app.all('/api/commitments', async (req, res) => {
     try {
@@ -340,7 +346,7 @@ async function startServer() {
       const state = createGoogleOAuthState(member.orgId, member.uid, String(req.body?.returnTo || '/'));
       const verified = verifyGoogleOAuthState(state);
       await registerOAuthStateNonce(member.orgId, verified.nonce, member.uid, verified.exp);
-      return res.status(200).json({ authorizationUrl: googleAuthorizationUrl(state) });
+      return res.status(200).json({ authorizationUrl: googleAuthorizationUrl(state,req.body?.calendarAccess==='write'?'write':req.body?.calendarAccess==='read'?'read':undefined) });
     } catch (error: any) {
       return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
     }

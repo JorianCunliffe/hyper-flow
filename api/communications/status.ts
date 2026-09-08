@@ -169,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const state = createGoogleOAuthState(member.orgId, member.uid, String(req.body?.returnTo || '/'));
       const verified = verifyGoogleOAuthState(state);
       await registerOAuthStateNonce(member.orgId, verified.nonce, member.uid, verified.exp);
-      return res.status(200).json({ authorizationUrl: googleAuthorizationUrl(state) });
+      return res.status(200).json({ authorizationUrl: googleAuthorizationUrl(state,req.body?.calendarAccess==='write'?'write':req.body?.calendarAccess==='read'?'read':undefined) });
     }
     if (action === 'google_resources') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
