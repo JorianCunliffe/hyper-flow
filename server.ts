@@ -1,4 +1,5 @@
 import { handleMemoryContextRequest } from './lib/communications/memoryContext';
+import { handleMeetingRequest, MeetingRequestError } from './lib/communications/meetings';
 import { handleCommitments } from './lib/commitments/api';
 import { CommitmentError } from './lib/commitments/model';
 import express from "express";
@@ -146,6 +147,10 @@ async function startServer() {
     }
   });
 
+  app.all('/api/meetings', async(req,res)=>{
+    try{return res.status(200).json(await handleMeetingRequest(req,await requireAppMember(req as any)));}
+    catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof MeetingRequestError?error.status:503).json({error:error.message,details:error.details});}
+  });
   app.all('/api/commitments', async (req, res) => {
     try {
       const member = await requireAppMember(req as any);
