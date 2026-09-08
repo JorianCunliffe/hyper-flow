@@ -28,6 +28,7 @@ export function ArtifactsPanel() {
     const r = await firebaseService.authorizedFetch(
       "/api/artifacts?" +
         new URLSearchParams({
+          shape: "summary",
           ...(projectId ? { projectId } : {}),
           ...Object.fromEntries(new URLSearchParams(query)),
         }),
@@ -463,6 +464,32 @@ export function ArtifactsPanel() {
                   {j.status} · {new Date(j.createdAt).toLocaleString()}
                 </button>
               ))}
+              {data.next && (
+                <button
+                  className={button}
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      const page = await request(
+                        undefined,
+                        "after=" + encodeURIComponent(data.next),
+                      );
+                      setData((old: any) => ({
+                        ...page,
+                        items: [
+                          ...old.items,
+                          ...page.items.filter(
+                            (row: any) =>
+                              !old.items.some((i: any) => i.id === row.id),
+                          ),
+                        ],
+                      }));
+                    })
+                  }
+                >
+                  Load more report jobs
+                </button>
+              )}
             </nav>
             {selected && (
               <article className="space-y-4 rounded-xl border bg-white p-5">

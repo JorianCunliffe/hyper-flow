@@ -1,0 +1,41 @@
+import {
+  readTenantControl,
+  transactTenantControl,
+  requireOrganizationMember,
+  readTenantWorkspace,
+  replaceTenantWorkspace,
+} from "../serverStore.js";
+import { TenantControlError } from "./model.js";
+import { handleClientControl, type ControlMember } from "./clients.js";
+export const controlStore = {
+  read: readTenantControl,
+  transact: transactTenantControl,
+};
+export async function handleWorkspace(
+  request: { method?: string; body?: any },
+  member: ControlMember,
+) {
+  await requireOrganizationMember(member.uid, member.orgId);
+  if (request.method === "GET")
+    return {
+      owner: "hyperflow",
+      data: await readTenantWorkspace(member.orgId),
+    };
+  if (request.method === "PUT")
+    return {
+      owner: "hyperflow",
+      data: await replaceTenantWorkspace(member.orgId, request.body),
+    };
+  throw new TenantControlError(405, "Method not allowed");
+}
+export async function handleTenantControl(
+  request: { method?: string; body?: any },
+  member: ControlMember,
+) {
+  const current = await requireOrganizationMember(member.uid, member.orgId);
+  return handleClientControl(
+    request,
+    { ...current, apiClientId: member.apiClientId },
+    controlStore,
+  );
+}

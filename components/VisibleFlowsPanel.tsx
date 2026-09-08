@@ -25,7 +25,9 @@ async function api(body?: unknown, path = "/api/flows") {
 export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
   projects,
 }) => {
-  const [items, setItems] = useState<FlowRecord[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<FlowRecord | null>(null);
+  const [nextPage, setNextPage] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<Record<string, any>>({});
   const [projectId, setProjectId] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -38,14 +40,15 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
   const [notice, setNotice] = useState("");
   const [runKeys, setRunKeys] = useState<Record<string, string>>({});
   const [scheduleTime, setScheduleTime] = useState("08:00");
-  const selected = items.find((i) => i.id === selectedId);
+  const selected = selectedRecord?.id === selectedId ? selectedRecord : null;
   const latest = selected?.versions[selected.versions.length - 1];
   useEffect(() => {
     let active = true;
-    api()
+    api(undefined, "/api/flows?shape=summary")
       .then((r) => {
         if (active) {
           setItems(r.items);
+          setNextPage(r.next || null);
           setCatalog(r.catalog);
           const focused = r.items.find(
             (row: FlowRecord) => row.id === selectedId,
@@ -60,6 +63,27 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
       active = false;
     };
   }, []);
+  useEffect(() => {
+    let live = true;
+    setSelectedRecord(null);
+    if (selectedId)
+      api(undefined, `/api/flows?id=${encodeURIComponent(selectedId)}`)
+        .then((r) => {
+          if (live) {
+            setSelectedRecord(r.item);
+            setProjectId(r.item.projectId);
+            setItems((old) =>
+              old.some((i) => i.id === r.item.id) ? old : [...old, r.item],
+            );
+          }
+        })
+        .catch((e) => {
+          if (live) setError(e.message);
+        });
+    return () => {
+      live = false;
+    };
+  }, [selectedId]);
   const perform = async (body: any) => {
     setBusy(true);
     setError("");
@@ -72,6 +96,7 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
         setNotice("Proposal only. Review each step and supply missing inputs.");
       }
       if (result.item) {
+        setSelectedRecord(result.item);
         setItems((old) => [
           ...old.filter((i) => i.id !== result.item.id),
           result.item,
@@ -129,6 +154,7 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
           <select
             className={field}
             value={projectId}
+            disabled={busy}
             onChange={(e) => {
               setProjectId(e.target.value);
               setProposal(null);
@@ -166,6 +192,7 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
         <select
           className={field}
           value={selectedId}
+          disabled={busy}
           onChange={(e) => {
             setSelectedId(e.target.value);
             setProposal(null);
@@ -176,7 +203,7 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
           <option value="">Choose a saved flow</option>
           {items.map((i) => (
             <option key={i.id} value={i.id}>
-              {i.versions.at(-1)?.plan.name}
+              {i.name || i.versions?.at(-1)?.plan.name}
             </option>
           ))}
         </select>
@@ -187,8 +214,21 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
         onClick={async () => {
           setBusy(true);
           try {
-            const result = await api();
+            const result = await api(undefined, "/api/flows?shape=summary");
             setItems(result.items);
+            setNextPage(result.next || null);
+            if (selectedId) {
+              const detail = await api(
+                undefined,
+                `/api/flows?id=${encodeURIComponent(selectedId)}`,
+              );
+              setSelectedRecord(detail.item);
+              setItems((old) =>
+                old.some((i) => i.id === detail.item.id)
+                  ? old
+                  : [...old, detail.item],
+              );
+            }
             setCatalog(result.catalog);
           } catch (e: any) {
             setError(e.message);
@@ -199,6 +239,34 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
       >
         Refresh receipts
       </button>
+      {nextPage && (
+        <button
+          className={button}
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const result = await api(
+                undefined,
+                `/api/flows?shape=summary&after=${encodeURIComponent(nextPage)}`,
+              );
+              setItems((old) => [
+                ...old,
+                ...result.items.filter(
+                  (row: any) => !old.some((item) => item.id === row.id),
+                ),
+              ]);
+              setNextPage(result.next || null);
+            } catch (e: any) {
+              setError(e.message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Load more flows
+        </button>
+      )}
       {proposal && (
         <div className="space-y-4 rounded-xl border p-4">
           <label>

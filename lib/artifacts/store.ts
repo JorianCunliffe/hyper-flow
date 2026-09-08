@@ -15,7 +15,7 @@ export interface ArtifactStore {
     kind: "jobs" | "registries" | "files",
     id: string,
   ): Promise<T | null>;
-  list(org: string): Promise<ArtifactJob[]>;
+  list(org: string, after?: string, limit?: number): Promise<ArtifactJob[]>;
   transact<T>(
     org: string,
     kind: "jobs" | "registries" | "files",

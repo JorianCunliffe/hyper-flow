@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readPage, pageRows } from "../tenantControl/pagination.js";
 import {
   listTenantProjects,
   requireOrganizationMember,
@@ -73,21 +74,61 @@ export async function handleArtifacts(
         "spreadsheet",
       ),
     };
-  if (request.method === "GET" && !q.id)
+  if (request.method === "GET" && !q.id) {
+    const { after, limit } = readPage(q, (message) => {
+      throw new ArtifactError(422, message);
+    });
+    const page = pageRows(
+      await store.list(member.orgId, after, limit + 1),
+      limit,
+    );
     return {
       items: publicArtifact(
-        (await store.list(member.orgId))
+        page.rows
           .filter((r) => r.projectId === projectId)
-          .map(({ inputs, ...summary }) => summary),
+          .map(({ inputs, ...summary }) =>
+            q.shape === "summary"
+              ? {
+                  id: summary.id,
+                  projectId: summary.projectId,
+                  status: summary.status,
+                  createdAt: summary.createdAt,
+                  revision: summary.revision,
+                  template: {
+                    id: summary.template.id,
+                    name: summary.template.name,
+                    version: summary.template.version,
+                  },
+                }
+              : summary,
+          ),
       ),
-      templates: publicArtifact(templates),
+      templates: publicArtifact(
+        q.shape === "summary"
+          ? templates.map((t) => ({
+              ...t,
+              brand: {
+                ...t.brand,
+                logo: t.brand.logo
+                  ? {
+                      width: t.brand.logo.width,
+                      height: t.brand.logo.height,
+                      sha256: t.brand.logo.sha256,
+                    }
+                  : undefined,
+              },
+            }))
+          : templates,
+      ),
       registryRevision: registry.revision,
       sheetTarget: registry.sheetTarget || null,
       connections: await (deps.connections || listWorkspaceConnectionRefs)(
         member.orgId,
       ),
-      limit: 100,
+      limit,
+      next: page.next,
     };
+  }
   if (request.method === "POST" && body.operation === "configure_sheet") {
     const actor = await (deps.membership || requireOrganizationMember)(
       member.uid,

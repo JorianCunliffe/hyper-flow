@@ -76,6 +76,7 @@ import { VisibleFlowsPanel } from './components/VisibleFlowsPanel';
 import { CockpitPanel } from './components/CockpitPanel';
 import { DiaryPanel } from './components/DiaryPanel';
 import { PublishingPanel } from './components/PublishingPanel';
+import { TenantOperationsPanel } from './components/TenantOperationsPanel';
 import { ArtifactsPanel } from './components/ArtifactsPanel';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { CloudSetupModal } from './components/modals/CloudSetupModal';
@@ -198,9 +199,19 @@ export const App: React.FC = () => {
   const initialView = initialAppView();
   const [currentUser, setCurrentUser] = useState<any>(firebaseService.getCurrentUser());
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(firebaseService.getCurrentOrgId());
+  const [accessRevoked,setAccessRevoked]=useState(false);
+  const authOrgRef=useRef(firebaseService.getCurrentOrgId());
   
   useEffect(() => {
-    const handleAuthChange = () => {
+    const handleAuthChange = (event:Event) => {
+      const nextOrg=firebaseService.getCurrentOrgId();
+      if(nextOrg!==authOrgRef.current || !firebaseService.getCurrentUser()){
+        localStorage.removeItem(BACKUP_KEY);
+        isRemoteUpdate.current=true;isDbInitialized.current=false;
+        setIsDataLoaded(false);setProjects([]);setScratchTasks([]);setActivityLogs([]);setSettings(DEFAULT_SETTINGS);
+      }
+      authOrgRef.current=nextOrg;
+      setAccessRevoked(Boolean((event as CustomEvent).detail?.accessRevoked));
       setCurrentUser(firebaseService.getCurrentUser());
       setCurrentOrgId(firebaseService.getCurrentOrgId());
     };
@@ -255,6 +266,7 @@ export const App: React.FC = () => {
   const [isMeetingsMode, setIsMeetingsMode] = useState(initialView === 'meetings');
   const [isFlowsMode, setIsFlowsMode] = useState(initialView === 'flows');
   const [isPublishingMode, setIsPublishingMode] = useState(initialView === 'publishing');
+  const [isTenantMode, setIsTenantMode] = useState(initialView === 'tenant');
   const [isArtifactsMode, setIsArtifactsMode] = useState(initialView === 'artifacts');
   const [isDiaryMode, setIsDiaryMode] = useState(initialView === 'diary');
   const [isCockpitMode, setIsCockpitMode] = useState(initialView === 'cockpit');
@@ -269,7 +281,7 @@ export const App: React.FC = () => {
   const [kanbanFilterToday, setKanbanFilterToday] = useState<boolean>(false);
   const [kanbanFilterLate, setKanbanFilterLate] = useState<boolean>(false);
 
-  const activeView: AppView = isPublishingMode ? 'publishing' : isArtifactsMode ? 'artifacts' : isDiaryMode ? 'diary' : isCockpitMode ? 'cockpit' : isFlowsMode ? 'flows' : isMeetingsMode ? 'meetings' : isObligationsMode ? 'obligations' : isTriageMode ? 'activity' : isReportingMode ? 'reports' : isApprovalsMode ? 'approvals' : isFeedMode ? 'feed' : isScratchMode ? 'scratch' : isKanbanMode ? 'kanban' : 'projects';
+  const activeView: AppView = isTenantMode ? 'tenant' : isPublishingMode ? 'publishing' : isArtifactsMode ? 'artifacts' : isDiaryMode ? 'diary' : isCockpitMode ? 'cockpit' : isFlowsMode ? 'flows' : isMeetingsMode ? 'meetings' : isObligationsMode ? 'obligations' : isTriageMode ? 'activity' : isReportingMode ? 'reports' : isApprovalsMode ? 'approvals' : isFeedMode ? 'feed' : isScratchMode ? 'scratch' : isKanbanMode ? 'kanban' : 'projects';
   const openView = useCallback((view: AppView) => {
     setIsKanbanMode(view === 'kanban');
     setIsScratchMode(view === 'scratch');
@@ -282,6 +294,7 @@ export const App: React.FC = () => {
     setIsFlowsMode(view === 'flows');
     setIsDiaryMode(view === 'diary');
     setIsPublishingMode(view === 'publishing');
+    setIsTenantMode(view === 'tenant');
     setIsArtifactsMode(view === 'artifacts');
     setIsCockpitMode(view === 'cockpit');
     const url = new URL(window.location.href);
@@ -459,6 +472,7 @@ export const App: React.FC = () => {
       setIsDataLoaded(true);
     }, (error) => {
        console.error("Subscription Error:", error);
+       if(/permission[_-]denied/i.test(String((error as any).code||'')+' '+error.message))firebaseService.invalidateOrganizationAccess();
        setCloudStatus('error');
        setSyncError(error.message);
        setIsDataLoaded(true);
@@ -2060,6 +2074,7 @@ export const App: React.FC = () => {
     }
 
     if (!currentOrgId) {
+      if(accessRevoked)return <div className="h-screen flex flex-col items-center justify-center gap-4 p-6"><h1 className="text-2xl font-bold">Organization access is unavailable</h1><p>Cached cloud records have been cleared. Sign in again after your administrator restores access.</p><button className="rounded border px-4 py-2" onClick={()=>void firebaseService.logout()}>Sign out</button></div>;
       return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900">
           <div className="bg-white p-8 border border-slate-200 rounded shadow-md w-full max-w-md">
@@ -2136,6 +2151,7 @@ export const App: React.FC = () => {
            <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg px-3 py-2 text-xs font-bold">Flows</button>
            <button type="button" onClick={() => openView('cockpit')} aria-pressed={activeView === 'cockpit'} className="rounded-lg px-3 py-2 text-xs font-bold">Cockpit</button>
         <button type="button" onClick={() => openView('publishing')} aria-pressed={activeView === 'publishing'} className="rounded-lg border px-3 py-2 text-sm font-bold">Publishing</button>
+        <button type="button" onClick={() => openView('tenant')} aria-pressed={activeView === 'tenant'} className="rounded-lg border px-3 py-2 text-sm font-bold">Account operations</button>
         <button type="button" onClick={() => openView('artifacts')} aria-pressed={activeView === 'artifacts'} className="rounded-lg border px-3 py-2 text-sm font-bold">Office outputs</button>
         <button type="button" onClick={() => openView('diary')} aria-pressed={activeView === 'diary'} className="rounded-lg border px-3 py-2 text-sm font-bold">Diary</button>
            <button type="button" onClick={() => openView('activity')} aria-pressed={activeView === 'activity'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'activity' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Inbox size={14} /> Activity</button>
@@ -2331,6 +2347,7 @@ export const App: React.FC = () => {
         <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg border px-3 py-2 text-sm font-bold">Flows</button>
         <button type="button" onClick={() => openView('cockpit')} aria-pressed={activeView === 'cockpit'} className="rounded-lg border px-3 py-2 text-sm font-bold">Cockpit</button>
         <button type="button" onClick={() => openView('publishing')} aria-pressed={activeView === 'publishing'} className="rounded-lg border px-3 py-2 text-sm font-bold">Publishing</button>
+        <button type="button" onClick={() => openView('tenant')} aria-pressed={activeView === 'tenant'} className="rounded-lg border px-3 py-2 text-sm font-bold">Account operations</button>
         <button type="button" onClick={() => openView('artifacts')} aria-pressed={activeView === 'artifacts'} className="rounded-lg border px-3 py-2 text-sm font-bold">Office outputs</button>
         <button type="button" onClick={() => openView('diary')} aria-pressed={activeView === 'diary'} className="rounded-lg border px-3 py-2 text-sm font-bold">Diary</button>
         {/* Header Actions */}
@@ -2454,7 +2471,7 @@ export const App: React.FC = () => {
         )}
 
         {/* MAIN VIEW CONTENT */}
-        {isPublishingMode ? (<PublishingPanel key={currentOrgId || 'none'} />) : isArtifactsMode ? (<ArtifactsPanel key={currentOrgId || 'none'} />) : isDiaryMode ? (<DiaryPanel key={currentOrgId || 'none'} />) : isCockpitMode ? (
+        {isTenantMode ? (<TenantOperationsPanel key={currentOrgId || 'none'} />) : isPublishingMode ? (<PublishingPanel key={currentOrgId || 'none'} />) : isArtifactsMode ? (<ArtifactsPanel key={currentOrgId || 'none'} />) : isDiaryMode ? (<DiaryPanel key={currentOrgId || 'none'} />) : isCockpitMode ? (
           <CockpitPanel key={currentOrgId || 'none'} />
         ) : isFlowsMode ? (
           <VisibleFlowsPanel key={currentOrgId || 'none'} projects={projects} />

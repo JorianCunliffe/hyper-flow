@@ -1,0 +1,30 @@
+(node:23716) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ artifact inputs reconcile current accepted states and exclusive deadline cutoff (6.0005ms)
+✔ artifact generation requires exact input approval and separate exact-file review (87.6415ms)
+✔ concurrent generation and repeated requests retain one immutable output (26.9811ms)
+✔ tenant isolation and file integrity fail closed (16.2731ms)
+✔ saved artifact is reconciled after job receipt persistence fails without regenerating (16.5939ms)
+✔ template registry preserves immutable versions and rejects stale writers and nonadministrators (1.4221ms)
+✔ all Office packages contain editable source references and typed workbook formulas (150.0142ms)
+✔ Firebase omitted empty arrays normalize without changing the report meaning (21.5405ms)
+✔ Google report export creates one tab atomically and preserves subsequent manual edits (24.4363ms)
+✔ spreadsheet export requires distinct grant and designated approval; revoked grants stop dispatch (16.3031ms)
+✔ PNG branding stays embedded in editable slides and rejects unsupported or unreadable assets (20.2232ms)
+✔ client issuance replays without secret disclosure; scopes, tenant and membership are current (326.535ms)
+✔ atomic request budget survives concurrency and credential rotation invalidates old secrets (298.1874ms)
+✔ machine credentials cannot delegate authority and rewrite routing retains business scope (49.6396ms)
+✔ channel execution preserves approved literals, checks current authority, and email only creates a draft (6.2869ms)
+✔ catalog compiler rejects fictional tools, cycles, unknown inputs and invented recipient formats; missing facts stay visible (1.1811ms)
+✔ version approval, durable concurrent dispatch, completed review and template isolation (30.6399ms)
+✔ pending dispatch survives replay; exact callbacks settle after cancellation without advancing (3.3556ms)
+✔ missing-input Ask is separate from approval; timeout and failed operations never redispatch (8.5856ms)
+✔ supplier review Ask rejects provider completion and other reviewers, and cancellation closes the Ask (5.6458ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3407.7356

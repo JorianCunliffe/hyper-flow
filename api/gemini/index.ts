@@ -10,6 +10,8 @@ import { PublishingError } from '../../lib/publishing/model.js';
 import { handleArtifacts } from '../../lib/artifacts/api.js';
 import { ArtifactError } from '../../lib/artifacts/model.js';
 import { CalendarError } from '../../lib/calendar/model.js';
+import { handleTenantControl, handleWorkspace } from '../../lib/tenantControl/api.js';
+import { TenantControlError } from '../../lib/tenantControl/model.js';
 
 const brainstormSubtasks = async (req: VercelRequest, res: VercelResponse) => {
   const { milestoneName, projectContext } = req.body || {};
@@ -79,6 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const member = await requireAppMember(req);
     const action = typeof req.query.action === 'string' ? req.query.action : '';
+    if (action === 'tenant') return res.status(200).json(await handleTenantControl(req,member));
+    if (action === 'workspace') return res.status(200).json(await handleWorkspace(req,member));
     if (action === 'flows') return res.status(200).json(publicFlowResponse(await handleVisibleFlows(req,member)));
     if (action === 'cockpit') return res.status(200).json(publicFlowResponse(await handleCockpit(req,member)));
     if (action === 'publishing') return res.status(200).json(await publishingRequest(req,member));
@@ -90,6 +94,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: 'Unknown Gemini operation' });
   } catch (error: any) {
     console.error(error);
-    return res.status(error instanceof ApiAuthError || error instanceof FlowError || error instanceof CalendarError || error instanceof ArtifactError || error instanceof PublishingError ? error.status : 500).json({ error: error?.message || String(error) });
+    return res.status(error instanceof ApiAuthError || error instanceof TenantControlError || error instanceof FlowError || error instanceof CalendarError || error instanceof ArtifactError || error instanceof PublishingError ? error.status : 500).json({ error: error?.message || String(error) });
   }
 }

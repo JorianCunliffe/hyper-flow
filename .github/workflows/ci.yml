@@ -30,3 +30,5 @@ jobs:
         run: npm run test:rules
       - name: Durable visible-flow transactions
         run: npx firebase-tools emulators:exec --project demo-hyperflow --only database --config firebase.test.json "node --import tsx --test tests/integration/phase06.test.ts"
+      - name: Tenant credentials, workspace revisions and pagination
+        run: npx firebase-tools emulators:exec --project demo-hyperflow --only database --config firebase.test.json "node --import tsx --test tests/integration/phase11.test.ts"
