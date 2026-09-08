@@ -1,7 +1,7 @@
 import { CommunicationsApiError } from './errors.js';
 
 /** Backend authority ceiling. Project data and browser settings cannot grant it. */
-export function assertEmailSendAllowed(tenantId: string | undefined): void {
+export function assertEmailSendAllowed(tenantId: string | undefined, accountMode?: string): void {
   if (!tenantId?.trim()) throw new CommunicationsApiError('Authenticated tenant is required', 403);
   let policy: Record<string, unknown>;
   try {
@@ -11,7 +11,8 @@ export function assertEmailSendAllowed(tenantId: string | undefined): void {
   } catch {
     throw new CommunicationsApiError('Email authority configuration is invalid', 503);
   }
-  const mode = Object.hasOwn(policy, tenantId) ? policy[tenantId] : 'draft_only';
+  const ceiling = Object.hasOwn(policy, tenantId) ? policy[tenantId] : undefined;
+  const mode = ceiling === 'draft_only' || accountMode === 'draft_only' ? 'draft_only' : accountMode || ceiling || 'draft_only';
   if (mode !== 'allow_send') {
     throw new CommunicationsApiError(
       'Email is draft-only for this organization. Prepare a mailbox draft or use an authorized SMS/phone channel.',

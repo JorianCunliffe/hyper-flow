@@ -1,6 +1,6 @@
 # HyperFlow API reference
 
-Phase 01 authority: direct task execution requires an existing project in the authenticated organization. All outbound email paths require a backend `EMAIL_SEND_POLICY_BY_TENANT` grant of `allow_send`; otherwise they fail with policy denial rather than claiming delivery. Mailbox draft creation is unaffected. See [boundaries and authority](architecture/BOUNDARIES.md) and the [Phase 01 API fragment](../contracts/phase01.openapi.json). This is an additional ceiling over existing authentication and action policy.
+Phase 01: direct task/email requests require a project in the authenticated organization. GET/POST `/api/communications/email-policy` reads/saves the organization email authority; writes require owner/admin and `{mode, version}` from the last read. Modes: draft_only (default), allow_send. Returns `{mode, configuredMode, version}`; 409 means reload before saving. Communications owns persistence and independently enforces policy. See [boundaries](architecture/BOUNDARIES.md) and [API fragment](../contracts/phase01.openapi.json).
 
 This reference describes the HTTP handlers under `api/`, their local Express equivalents, and the Communications Service requests emitted by the current HyperFlow client.
 

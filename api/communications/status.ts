@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { CommunicationsPersonRef } from '../../lib/communications/types.js';
 import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
 import { createCommunicationsClient } from '../../lib/communications/client.js';
+import { accountEmailPolicy } from '../../lib/communications/accountEmailPolicy.js';
+import { CommunicationsApiError } from '../../lib/communications/errors.js';
 import {
   listMailboxConnectionRefs,
   listScheduleRuns,
@@ -79,6 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const member = await requireAppMember(req);
+    if (action === 'email_policy') return res.status(200).json(await accountEmailPolicy(member, req.method, req.body));
     if (action === 'service_setup_draft') {
       const id = String(req.query.id || req.body?.id || '').trim();
       if (req.method === 'GET') {
@@ -268,6 +271,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ connected: false, error: error?.message || 'Communications Service unavailable' });
     }
   } catch (error: any) {
-    return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
+    return res.status(error instanceof ApiAuthError || error instanceof CommunicationsApiError ? error.status || 500 : 500).json({ error: error?.message || String(error) });
   }
 }

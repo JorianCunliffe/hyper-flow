@@ -59,10 +59,25 @@ export class HttpCommunicationsClient implements CommunicationsClient {
   }
 
   async sendEmail(request: SendEmailRequest): Promise<CommunicationResult> {
-    assertEmailSendAllowed(request.correlation?.tenant_id);
+    const policy = await this.getEmailPolicy(request.correlation?.tenant_id);
+    assertEmailSendAllowed(request.correlation?.tenant_id, policy.mode);
     return this.communicationRequest('/v1/emails', {
       method: 'POST', body: request, idempotencyKey: this.operationKey('email', request)
     });
+  }
+
+  async getEmailPolicy(tenantId: string): Promise<{ mode: string; configuredMode: string | null; version: string }> {
+    this.requireTenant(tenantId);
+    const result = await this.rawRequest('/v1/tenant-policy/email', { method: 'GET', tenantId });
+    if (!result || !['draft_only', 'allow_send'].includes(result.mode) || typeof result.version !== 'string') {
+      throw new CommunicationsApiError('Email policy is unavailable or invalid', 503);
+    }
+    return result;
+  }
+
+  saveEmailPolicy(tenantId: string, mode: string, version: string): Promise<{ mode: string; version: string }> {
+    this.requireTenant(tenantId);
+    return this.rawRequest('/v1/tenant-policy/email', { method: 'POST', tenantId, body: { mode, version } });
   }
 
   async listCommunications(tenantId: string, options: CommunicationListOptions = {}): Promise<CommunicationListResult> {

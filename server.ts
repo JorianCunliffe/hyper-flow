@@ -11,7 +11,7 @@ import { advanceServerFlow, readAskByToken, respondToAsk } from "./lib/serverFlo
 import { externalEventHttpStatus, receiveExternalEvent } from "./lib/externalEvents";
 import { parseSignedJsonBody, verifyCommunicationsSignatureV2, verifyIncomingCommunicationsSignature } from "./lib/communications/webhook";
 import { createCommunicationsClient } from "./lib/communications/client";
-import { assertEmailSendAllowed } from "./lib/communications/emailPolicy";
+import { accountEmailPolicy } from "./lib/communications/accountEmailPolicy";
 import { CommunicationsApiError } from "./lib/communications/errors";
 import {
   consumeOrganizationInvite,
@@ -601,10 +601,19 @@ async function startServer() {
     }
   });
 
+  app.all('/api/communications/email-policy', async (req, res) => {
+    try {
+      const member = await requireAppMember(req as any);
+      return res.status(200).json(await accountEmailPolicy(member, req.method, req.body));
+    } catch (error: any) {
+      return res.status(error instanceof ApiAuthError || error instanceof CommunicationsApiError ? error.status || 500 : 500)
+        .json({ error: error.message });
+    }
+  });
+
   app.post("/api/send-email", async (req, res) => {
     try {
       const member = await requireAppMember(req as any);
-      assertEmailSendAllowed(member.orgId);
       const { to, subject, html, text, projectId, taskId, runId } = req.body || {};
       if (!projectId || !taskId || !runId) throw new Error('projectId, taskId and runId are required');
       if (!await findProject(member.orgId, String(projectId))) throw new ApiAuthError(403, 'Project does not belong to this organization');

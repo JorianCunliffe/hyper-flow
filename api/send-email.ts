@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createCommunicationsClient } from '../lib/communications/client.js';
 import { findProject, readTenantCommunicationsSettings } from '../lib/serverStore.js';
-import { assertEmailSendAllowed } from '../lib/communications/emailPolicy.js';
 import { CommunicationsApiError } from '../lib/communications/errors.js';
 import { ApiAuthError, requireAppMember } from '../lib/apiAuth.js';
 
@@ -11,7 +10,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   try {
     const member = await requireAppMember(req);
-    assertEmailSendAllowed(member.orgId);
     const { to, subject, html, text, projectId, taskId, runId } = req.body || {};
     if (!projectId || !taskId || !runId) throw new Error('projectId, taskId and runId are required');
     if (!await findProject(member.orgId, String(projectId))) throw new ApiAuthError(403, 'Project does not belong to this organization');

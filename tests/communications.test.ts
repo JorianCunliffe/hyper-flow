@@ -87,6 +87,7 @@ describe('HttpCommunicationsClient current Communications Service contract', () 
     });
     const calls: any[] = [];
     const fetchImpl: typeof fetch = async (url: any, init?: any) => {
+      if (String(url).endsWith('/tenant-policy/email')) return Response.json({ mode: 'allow_send', version: '2026-09-08T00:00:00.000Z' });
       calls.push({ url: String(url), init });
       return new Response(JSON.stringify({ communication_id: 'email_1', channel: 'email', thread_id: 'thread_1' }), { status: 201 });
     };
@@ -204,6 +205,7 @@ describe('executeTask communications routing', () => {
     process.env.COMMUNICATIONS_API_KEY = 'secret';
     process.env.PUBLIC_BASE_URL = 'https://hyperflow.example';
     globalThis.fetch = async (_url: any, init?: any) => {
+      if (String(_url).endsWith('/tenant-policy/email')) return Response.json({ mode: 'allow_send', version: '2026-09-08T00:00:00.000Z' });
       request = JSON.parse(init.body);
       headers = init.headers;
       return new Response(JSON.stringify({ communication_id: 'comm_email_1', channel: 'email', thread_id: 'thread_1' }), { status: 201 });
@@ -240,6 +242,7 @@ describe('executeTask communications routing', () => {
     process.env.COMMUNICATIONS_FROM_NUMBER = '+61411111111';
     process.env.PUBLIC_BASE_URL = 'https://hyperflow.example';
     globalThis.fetch = async (_url: any, init?: any) => {
+      if (String(_url).endsWith('/tenant-policy/email')) return Response.json({ mode: 'allow_send', version: '2026-09-08T00:00:00.000Z' });
       request = JSON.parse(init.body);
       return new Response(JSON.stringify({ communication_id: 'comm_sms_1', channel: 'sms' }), { status: 201 });
     };

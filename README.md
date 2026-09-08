@@ -1,6 +1,6 @@
 # HyperFlow
 
-Email sends now require a backend tenant grant in `EMAIL_SEND_POLICY_BY_TENANT`; unlisted organizations are draft-only. Existing mailbox drafting remains available. See [application boundaries and authority](docs/architecture/BOUNDARIES.md) for configuration, scoped SMS/voice clients, and rollout requirements. Project settings cannot override the backend ceiling.
+Phase 01 adds an organization-wide email option: Draft only (default) or Allow authorized sending. Owners/admins manage it in HyperFlow Settings; Communications stores and enforces it. SMS/voice permissions remain separate. See [boundaries and rollout](docs/architecture/BOUNDARIES.md).
 
 HyperFlow is a visual workflow engine for projects that combine human milestones, automated actions, decisions, loops, and review gates. Server-side execution and durable schedules let flows continue without an open browser, while signed event handling reconnects email, SMS, and voice results to the exact tenant, action run, and Human Ask that started them.
 
