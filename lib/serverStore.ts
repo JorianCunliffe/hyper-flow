@@ -48,6 +48,14 @@ const APP_NAME = 'hyperflow-server';
 
 export class ServerStoreUnavailable extends Error {}
 
+export async function readPublishingLedger(org:string,project:string):Promise<import('./publishing/model.js').PublishingLedger|null>{
+ const snapshot=await getDb().ref(`publishing/${safeRtdbKey(org)}/${safeRtdbKey(project)}`).get();return snapshot.exists()?snapshot.val():null;
+}
+export async function transactPublishingLedger(org:string,project:string,update:(r:import('./publishing/model.js').PublishingLedger|null)=>import('./publishing/model.js').PublishingLedger):Promise<import('./publishing/model.js').PublishingLedger>{
+ const reference=getDb().ref(`publishing/${safeRtdbKey(org)}/${safeRtdbKey(project)}`);let listener=()=>{};
+ try{await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});const result=await reference.transaction(current=>{const serialized=JSON.stringify(update(current));if(Buffer.byteLength(serialized)>3800000)throw new Error('Publication history reached its storage limit');return JSON.parse(serialized);},undefined,false);if(!result.committed)throw new Error('Publication update was not saved');return result.snapshot.val();}finally{reference.off('value',listener);}
+}
+
 export async function readArtifactRecord<T>(org:string,kind:'jobs'|'registries'|'files',id:string):Promise<T|null>{
   const snapshot=await getDb().ref(`artifacts/${safeRtdbKey(org)}/${kind}/${safeRtdbKey(id)}`).get();return snapshot.exists()?snapshot.val():null;
 }

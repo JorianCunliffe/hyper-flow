@@ -71,6 +71,35 @@ export const executeVisibleStep = async (
       },
     };
   }
+  if (step.action === "review_publication") {
+    const { publishingRequest } = await import("../publishing/store.js");
+    const result: any = await publishingRequest(
+      {
+        method: "GET",
+        query: {
+          projectId: run.projectId,
+          id: step.inputs.publicationId,
+        },
+      },
+      { orgId, uid: run.createdBy },
+    );
+    if (result.item.contentHash !== step.inputs.contentHash)
+      throw new FlowError(
+        409,
+        "Publication changed; approve a new flow version",
+      );
+    return {
+      status: "pending",
+      output: {
+        publication_id: result.item.id,
+        publication_content_hash: result.item.contentHash,
+        publication_url: `/?view=publishing&project=${encodeURIComponent(run.projectId)}`,
+      },
+      logs: [
+        "Complete the separate preview, public-use Ask and publication in Publishing, then verify this step. No publication is dispatched by this flow.",
+      ],
+    };
+  }
   if (step.action === "check_artifact") {
     await requireOrganizationMember(run.createdBy, orgId);
     const { handleArtifacts } = await import("../artifacts/api.js");

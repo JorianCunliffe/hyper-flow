@@ -5,6 +5,8 @@ import { handleVisibleFlows, publicFlowResponse } from '../../lib/visibleFlows/a
 import { FlowError } from '../../lib/visibleFlows/model.js';
 import { handleCockpit } from '../../lib/cockpit/api.js';
 import { handleCalendar } from '../../lib/calendar/api.js';
+import { publishingRequest } from '../../lib/publishing/store.js';
+import { PublishingError } from '../../lib/publishing/model.js';
 import { handleArtifacts } from '../../lib/artifacts/api.js';
 import { ArtifactError } from '../../lib/artifacts/model.js';
 import { CalendarError } from '../../lib/calendar/model.js';
@@ -79,6 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const action = typeof req.query.action === 'string' ? req.query.action : '';
     if (action === 'flows') return res.status(200).json(publicFlowResponse(await handleVisibleFlows(req,member)));
     if (action === 'cockpit') return res.status(200).json(publicFlowResponse(await handleCockpit(req,member)));
+    if (action === 'publishing') return res.status(200).json(await publishingRequest(req,member));
     if (action === 'artifacts') return res.status(200).json(await handleArtifacts(req,member));
     if (action === 'calendar') return res.status(200).json(await handleCalendar(req,member));
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -87,6 +90,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: 'Unknown Gemini operation' });
   } catch (error: any) {
     console.error(error);
-    return res.status(error instanceof ApiAuthError || error instanceof FlowError || error instanceof CalendarError || error instanceof ArtifactError ? error.status : 500).json({ error: error?.message || String(error) });
+    return res.status(error instanceof ApiAuthError || error instanceof FlowError || error instanceof CalendarError || error instanceof ArtifactError || error instanceof PublishingError ? error.status : 500).json({ error: error?.message || String(error) });
   }
 }

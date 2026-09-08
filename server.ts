@@ -4,6 +4,8 @@ import { handleVisibleFlows, publicFlowResponse } from './lib/visibleFlows/api';
 import { FlowError } from './lib/visibleFlows/model';
 import { handleCockpit } from './lib/cockpit/api';
 import { handleCalendar } from './lib/calendar/api';
+import { publishingRequest } from './lib/publishing/store';
+import { PublishingError } from './lib/publishing/model';
 import { handleArtifacts } from './lib/artifacts/api';
 import { ArtifactError } from './lib/artifacts/model';
 import { CalendarError } from './lib/calendar/model';
@@ -166,6 +168,7 @@ async function startServer() {
     try{return res.status(200).json(publicFlowResponse(await handleCockpit(req,await requireAppMember(req as any))));}
     catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof FlowError?error.status:503).json({error:error.message});}
   });
+  app.all('/api/publishing',async(req,res)=>{try{return res.status(200).json(await publishingRequest(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof PublishingError?error.status:500).json({error:error.message});}});
   app.all('/api/artifacts', async(req,res)=>{
     try{return res.status(200).json(await handleArtifacts(req,await requireAppMember(req as any)));}
     catch(error:any){return res.status(error instanceof ApiAuthError || error instanceof ArtifactError ? error.status : 500).json({error:error.message});}
