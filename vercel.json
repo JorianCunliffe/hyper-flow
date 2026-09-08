@@ -5,6 +5,7 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/commitments", "destination": "/api/communications/status?action=commitments" },
     { "source": "/api/communications/memory", "destination": "/api/communications/status?action=memory" },
     { "source": "/api/communications/email-policy", "destination": "/api/communications/status?action=email_policy" },
     { "source": "/forms/ask/:token", "destination": "/api/asks/:token" },

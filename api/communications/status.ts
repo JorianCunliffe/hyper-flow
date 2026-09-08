@@ -1,4 +1,6 @@
 import { handleMemoryContextRequest } from '../../lib/communications/memoryContext.js';
+import { handleCommitments } from '../../lib/commitments/api.js';
+import { CommitmentError } from '../../lib/commitments/model.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { CommunicationsPersonRef } from '../../lib/communications/types.js';
 import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
@@ -83,6 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const member = await requireAppMember(req);
+    if (action === 'commitments') return res.status(200).json(await handleCommitments(req, member));
     if (action === 'memory') return res.status(200).json(await handleMemoryContextRequest(req, member));
     if (action === 'email_policy') return res.status(200).json(await accountEmailPolicy(member, req.method, req.body));
     if (action && (THREAD_REGISTER_ACTIONS as readonly string[]).includes(action)) {
@@ -277,6 +280,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ connected: false, error: error?.message || 'Communications Service unavailable' });
     }
   } catch (error: any) {
+    if (error instanceof CommitmentError) return res.status(error.status).json({ error: error.message });
     return res.status(error instanceof ApiAuthError ? error.status : action === 'email_policy' && error instanceof CommunicationsApiError ? error.status || 503 : threadRegisterErrorStatus(error)).json({ error: error?.message || String(error) });
   }
 }

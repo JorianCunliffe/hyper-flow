@@ -178,3 +178,9 @@ Release gate:
 - Each defect has reproduction steps and severity. Wrong tenant/person delivery, false approval and duplicate billable dispatch block release. Incorrect threading or lost/stalled processing also block this feature's acceptance.
 
 Recommended first implementation slice: fixture foundation → J02–J11 with deterministic providers → real UI journey → recovery/negative cases → controlled live run. This produces one useful integrated regression test early while retaining the broader acceptance gate.
+
+## Phase 04 implementation acceptance
+
+See [P04 evidence](implementation/P04.md) and [operational state contract](architecture/COMMITMENTS.md). Deterministic acceptance covers candidate clarification, separate agreement, renegotiation with preserved terms, submission versus fulfillment, revision, dispute, cancellation, stale/concurrent replies and identity checks. Existing workflow tests continue to prove that an earlier run's approval cannot release the current run.
+
+SQL/HTTP integration imports historical extracted evidence without inheriting its status and rejects changed sources. Firebase emulator acceptance proves durable aggregate reviews and direct-client denial. The browser fixture proves the review journey with synthetic records; it does not replace the real-member production persistence and source-permission journey. Follow-up configuration must produce no outbound operation. No live communication is required for this phase's local gate.

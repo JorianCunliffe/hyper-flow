@@ -1,4 +1,6 @@
 import { handleMemoryContextRequest } from './lib/communications/memoryContext';
+import { handleCommitments } from './lib/commitments/api';
+import { CommitmentError } from './lib/commitments/model';
 import express from "express";
 import path from "path";
 import cors from "cors";
@@ -141,6 +143,15 @@ async function startServer() {
       return res.status(200).json(await handleMemoryContextRequest(req, member));
     } catch (error: any) {
       return res.status(error instanceof ApiAuthError ? error.status : threadRegisterErrorStatus(error)).json({ error: error?.message || 'Memory context unavailable' });
+    }
+  });
+
+  app.all('/api/commitments', async (req, res) => {
+    try {
+      const member = await requireAppMember(req as any);
+      return res.status(200).json(await handleCommitments(req, member));
+    } catch (error: any) {
+      return res.status(error instanceof ApiAuthError || error instanceof CommitmentError ? error.status : 503).json({ error: error?.message || 'Obligations unavailable' });
     }
   });
 

@@ -1,0 +1,22 @@
+(node:14952) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+i  emulators: Starting emulators: database
+i  emulators: Detected demo project ID "demo-hyperflow", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  database: Database Emulator logging to database-debug.log
+i  Running script: node --import tsx --test tests/integration/phase04.test.ts
+[2026-09-08T11:57:53.463Z]  @firebase/database: FIREBASE WARNING: set at /operational_commitments/phase04_fixture/ob_3db8014ef41f47a1a33a14d68edbc46d failed: permission_denied
+✔ Phase 04: actual Firebase round-trip, simultaneous Ask replies and direct-client isolation (1521.4088ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2078.4817
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  database: Stopping Database Emulator
+!  Database Emulator has exited upon receiving signal: SIGINT
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

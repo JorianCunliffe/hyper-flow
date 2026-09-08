@@ -3,6 +3,7 @@ import { getDatabase } from 'firebase-admin/database';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { randomUUID } from 'node:crypto';
+import { normalizeCommitment } from './commitments/model.js';
 import {
   ActivityLog,
   AgentActionProposal,
@@ -197,6 +198,27 @@ const getServerApp = () => {
 };
 
 const getDb = () => getDatabase(getServerApp());
+
+/** Server-only operational state; no client rule grants access to this root. */
+export async function listOperationalCommitments(orgId: string, after = '', limit = 50) {
+  let query = getDb().ref(`operational_commitments/${safeRtdbKey(orgId)}`).orderByKey();
+  if (after) query = query.startAfter(after);
+  const snap = await query.limitToFirst(limit + 1).get();
+  const rows: import('./commitments/model.js').Commitment[] = [];
+  snap.forEach(child => { rows.push(normalizeCommitment(child.val())); });
+  return { rows: rows.slice(0,limit), next: rows.length > limit ? rows[limit-1].id : null };
+}
+export async function readOperationalCommitment(orgId: string, id: string): Promise<import('./commitments/model.js').Commitment | null> {
+  const snap = await getDb().ref(`operational_commitments/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).get();
+  return snap.exists() ? normalizeCommitment(snap.val()) : null;
+}
+export async function transactOperationalCommitment(orgId: string, id: string,
+  update: (current: import('./commitments/model.js').Commitment | null) => import('./commitments/model.js').Commitment) {
+  const result = await getDb().ref(`operational_commitments/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).transaction(current =>
+    JSON.parse(JSON.stringify(update(current ? normalizeCommitment(current) : null))), undefined, false);
+  if (!result.committed) throw new Error('Obligation update was not committed');
+  return normalizeCommitment(result.snapshot.val());
+}
 
 export interface AuthenticatedMember {
   uid: string;
