@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readPage, pageRows } from "../tenantControl/pagination.js";
 import { GoogleGenAI } from "@google/genai";
 import { listTenantProjects } from "../serverStore.js";
 import {
@@ -66,12 +67,34 @@ export async function handleVisibleFlows(
         ),
         catalog: FLOW_CATALOG,
       };
+    const { after, limit } = readPage(request.query, (message) => {
+      throw new FlowError(422, message);
+    });
+    const page = pageRows(
+      await store.list(member.orgId, after, limit + 1),
+      limit,
+    );
+    const accessible = page.rows.filter((r) => permitted.has(r.projectId));
+    const items =
+      request.query?.shape === "summary"
+        ? accessible.map((r) => ({
+            id: r.id,
+            projectId: r.projectId,
+            revision: r.revision,
+            name: r.versions.at(-1)?.plan.name,
+            currentVersion: r.versions.at(-1)?.version,
+          }))
+        : accessible;
+    if (Buffer.byteLength(JSON.stringify(items)) > 3800000)
+      throw new FlowError(
+        413,
+        "Use shape=summary and retrieve each flow by id",
+      );
     return {
-      items: (await store.list(member.orgId)).filter((r) =>
-        permitted.has(r.projectId),
-      ),
+      items,
       catalog: FLOW_CATALOG,
-      limit: 100,
+      limit,
+      next: page.next,
     };
   }
   if (request.method !== "POST") throw new FlowError(405, "Method not allowed");

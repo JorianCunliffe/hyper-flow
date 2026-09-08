@@ -1,0 +1,24 @@
+(node:19088) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+i  emulators: Starting emulators: database
+i  emulators: Detected demo project ID "demo-hyperflow", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  database: Database Emulator logging to database-debug.log
+i  Running script: node --import tsx --test tests/integration/phase11.test.ts
+(node:9296) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2026-09-08T23:13:56.013Z]  @firebase/database: FIREBASE WARNING: set at /tenant_control/org_phase11/clients/forged failed: permission_denied 
+✔ Phase 11 tenant API credentials and workspace revisions use real isolated records (6449.2741ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7605.8186
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  database: Stopping Database Emulator
+!  Database Emulator has exited upon receiving signal: SIGINT
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

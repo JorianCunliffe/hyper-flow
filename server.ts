@@ -9,6 +9,8 @@ import { PublishingError } from './lib/publishing/model';
 import { handleArtifacts } from './lib/artifacts/api';
 import { ArtifactError } from './lib/artifacts/model';
 import { CalendarError } from './lib/calendar/model';
+import { handleTenantControl, handleWorkspace } from './lib/tenantControl/api';
+import { TenantControlError } from './lib/tenantControl/model';
 import { handleCommitments } from './lib/commitments/api';
 import { CommitmentError } from './lib/commitments/model';
 import express from "express";
@@ -104,6 +106,7 @@ async function startServer() {
       return res.status(500).json({ error: 'Handler failed' });
     }
   });
+  app.use('/api/workspace',express.json({limit:'4mb'}));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -168,6 +171,8 @@ async function startServer() {
     try{return res.status(200).json(publicFlowResponse(await handleCockpit(req,await requireAppMember(req as any))));}
     catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof FlowError?error.status:503).json({error:error.message});}
   });
+  app.all('/api/tenant',async(req,res)=>{try{return res.status(200).json(await handleTenantControl(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
+  app.all('/api/workspace',async(req,res)=>{try{return res.status(200).json(await handleWorkspace(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
   app.all('/api/publishing',async(req,res)=>{try{return res.status(200).json(await publishingRequest(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof PublishingError?error.status:500).json({error:error.message});}});
   app.all('/api/artifacts', async(req,res)=>{
     try{return res.status(200).json(await handleArtifacts(req,await requireAppMember(req as any)));}

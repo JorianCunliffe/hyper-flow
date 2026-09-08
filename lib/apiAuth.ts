@@ -1,9 +1,13 @@
 import { timingSafeEqual } from 'node:crypto';
+import { authenticateClient, requestScope } from './tenantControl/clients.js';
+import { TenantControlError } from './tenantControl/model.js';
 import {
   isServerStoreConfigured,
   findProject,
   requireOrganizationMember,
   verifyFirebaseIdToken,
+  readTenantControl,
+  transactTenantControl,
   type AuthenticatedMember
 } from './serverStore.js';
 
@@ -13,7 +17,7 @@ export class ApiAuthError extends Error {
   }
 }
 
-type RequestLike = { headers: Record<string, string | string[] | undefined> };
+type RequestLike = { headers: Record<string, string | string[] | undefined>; url?:string; method?:string; query?:any };
 
 export const requireProjectInTenant = async (
   orgId: string,
@@ -37,10 +41,15 @@ export const requireAppMember = async (req: RequestLike, requestedOrgId?: string
   const token = bearerToken(req);
   if (!token) throw new ApiAuthError(401, 'Firebase authentication required');
   try {
+    if(token.startsWith('hf.')) {
+      const member=await authenticateClient(token,requestScope(req),{read:readTenantControl,transact:transactTenantControl},requireOrganizationMember,requestedOrgId);
+      return {...member,role:member.role as AuthenticatedMember['role']};
+    }
     const identity = await verifyFirebaseIdToken(token);
     return await requireOrganizationMember(identity.uid, requestedOrgId);
   } catch (error: any) {
     if (error instanceof ApiAuthError) throw error;
+    if (error instanceof TenantControlError) throw new ApiAuthError(error.status,error.message);
     const message = /membership/i.test(error?.message || '')
       ? 'Organization membership required'
       : 'Invalid or expired Firebase authentication';

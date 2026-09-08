@@ -290,6 +290,11 @@ export const firebaseService = {
   getCurrentUser: () => currentUser,
   getCurrentOrgId: () => currentOrgId,
   getDataRevision: () => currentDataRevision,
+  invalidateOrganizationAccess: () => {
+    currentOrgId=null;
+    currentDataRevision=0;
+    window.dispatchEvent(new CustomEvent('firebase-auth-changed',{detail:{accessRevoked:true}}));
+  },
 
   authorizedFetch: async (input: RequestInfo | URL, init: RequestInit = {}) => {
     if (!currentUser) throw new Error('Sign in is required');

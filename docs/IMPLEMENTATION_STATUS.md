@@ -40,8 +40,8 @@ Last updated: 9 September 2026.
 | P08 | Diary and calendar execution | Released; live calendar grant and booking acceptance pending | P07, P01 | [P08 record](implementation/P08.md) |
 | P09 | Reports, templates and office artifacts | Released; controlled live slide report reviewed; Google export acceptance pending | P06; P04/P05 for operational inputs | [P09 record](implementation/P09.md) |
 | P10 | Approved social and website publication | Internal workflow released and controlled live draft/flow verified; selected providers and live publication pending | P09 | [P10 record](implementation/P10.md) |
-| P11 | Complete REST parity and SaaS operations | In progress: API parity audit and tenant credential lifecycle | Cross-cutting from P01; final audit after selected product phases | No phase record yet |
-| P12 | Integrated CEO acceptance and release | Not started | P00–P11 for full programme | No phase record yet |
+| P11 | Complete REST parity and SaaS operations | In progress: API parity audit and tenant credential lifecycle | Cross-cutting from P01; final audit after selected product phases | [P11](implementation/P11.md) |
+| P12 | Integrated CEO acceptance and release | Not started | P00–P11 for full programme | [P11](implementation/P11.md) |
 
 Replace “No phase record yet” with links to the actual per-app records when they are created. Do not pre-create pass results or mark a whole phase complete from one work package.
 

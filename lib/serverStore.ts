@@ -48,6 +48,21 @@ const APP_NAME = 'hyperflow-server';
 
 export class ServerStoreUnavailable extends Error {}
 
+export async function readTenantWorkspace(org:string){const snap=await getDb().ref(`projects/${safeRtdbKey(org)}`).get();return snap.exists()?snap.val():null;}
+export async function replaceTenantWorkspace(org:string,body:any){
+  const {replaceWorkspace}=await import('./tenantControl/workspace.js');
+  const reference=getDb().ref(`projects/${safeRtdbKey(org)}`);let listener=()=>{};
+  try{await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});const result=await reference.transaction(current=>JSON.parse(JSON.stringify(replaceWorkspace(current,body))),undefined,false);if(!result.committed)throw new Error('Workspace update was not saved');return result.snapshot.val();}finally{reference.off('value',listener);}
+}
+
+export async function readTenantControl(org:string):Promise<import('./tenantControl/model.js').TenantControl|null>{
+  const snapshot=await getDb().ref(`tenant_control/${safeRtdbKey(org)}`).get();return snapshot.exists()?snapshot.val():null;
+}
+export async function transactTenantControl(org:string,update:(r:import('./tenantControl/model.js').TenantControl|null)=>import('./tenantControl/model.js').TenantControl){
+  const reference=getDb().ref(`tenant_control/${safeRtdbKey(org)}`);let listener=()=>{};
+  try{await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});const result=await reference.transaction(current=>JSON.parse(JSON.stringify(update(current))),undefined,false);if(!result.committed)throw new Error('Tenant control update was not saved');return result.snapshot.val();}finally{reference.off('value',listener);}
+}
+
 export async function readPublishingLedger(org:string,project:string):Promise<import('./publishing/model.js').PublishingLedger|null>{
  const snapshot=await getDb().ref(`publishing/${safeRtdbKey(org)}/${safeRtdbKey(project)}`).get();return snapshot.exists()?snapshot.val():null;
 }
@@ -59,8 +74,8 @@ export async function transactPublishingLedger(org:string,project:string,update:
 export async function readArtifactRecord<T>(org:string,kind:'jobs'|'registries'|'files',id:string):Promise<T|null>{
   const snapshot=await getDb().ref(`artifacts/${safeRtdbKey(org)}/${kind}/${safeRtdbKey(id)}`).get();return snapshot.exists()?snapshot.val():null;
 }
-export async function listArtifactRecords(org:string):Promise<import('./artifacts/model.js').ArtifactJob[]>{
-  const snapshot=await getDb().ref(`artifacts/${safeRtdbKey(org)}/jobs`).orderByKey().limitToFirst(100).get();return Object.values(snapshot.val()||{});
+export async function listArtifactRecords(org:string,after='',limit=100):Promise<import('./artifacts/model.js').ArtifactJob[]>{
+  let query=getDb().ref(`artifacts/${safeRtdbKey(org)}/jobs`).orderByKey();if(after)query=query.startAfter(after);const snapshot=await query.limitToFirst(limit).get();return Object.values(snapshot.val()||{});
 }
 export async function transactArtifactRecord<T>(org:string,kind:'jobs'|'registries'|'files',id:string,update:(current:T|null)=>T):Promise<T>{
   const reference=getDb().ref(`artifacts/${safeRtdbKey(org)}/${kind}/${safeRtdbKey(id)}`);let listener=()=>{};
@@ -102,8 +117,9 @@ export async function readVisibleFlow(orgId: string, id: string): Promise<FlowRe
   const snap = await getDb().ref(`visible_flows/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).get();
   return snap.exists() ? normalizeFlow(snap.val()) : null;
 }
-export async function listVisibleFlows(orgId: string): Promise<FlowRecord[]> {
-  const snap = await getDb().ref(`visible_flows/${safeRtdbKey(orgId)}`).orderByKey().limitToLast(100).get();
+export async function listVisibleFlows(orgId: string,after='',limit=100): Promise<FlowRecord[]> {
+  let query=getDb().ref(`visible_flows/${safeRtdbKey(orgId)}`).orderByKey();if(after)query=query.startAfter(after);
+  const snap = await query.limitToFirst(limit).get();
   return Object.values(snap.val() || {}).map(v=>normalizeFlow(v as FlowRecord));
 }
 export async function transactVisibleFlow(orgId: string, id: string, update: (current: FlowRecord|null)=>FlowRecord): Promise<FlowRecord> {
@@ -305,6 +321,7 @@ export async function transactOperationalCommitment(orgId: string, id: string,
 }
 
 export interface AuthenticatedMember {
+  apiClientId?: string;
   uid: string;
   email?: string;
   orgId: string;
