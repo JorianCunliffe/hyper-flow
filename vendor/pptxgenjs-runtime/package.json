@@ -1,0 +1,17 @@
+{
+  "name": "@hyperflow/pptxgenjs-runtime",
+  "version": "4.0.1-hf.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    "types": "./index.d.ts",
+    "import": "./index.js",
+    "default": "./index.js"
+  },
+  "dependencies": {
+    "jszip": "3.10.1"
+  }
+}

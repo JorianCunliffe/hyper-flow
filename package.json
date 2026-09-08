@@ -27,11 +27,11 @@
     "html2canvas": "1.4.1",
     "jszip": "3.10.1",
     "lucide-react": "^0.562.0",
-    "pptxgenjs": "4.0.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^3.6.0",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "@hyperflow/pptxgenjs-runtime": "file:vendor/pptxgenjs-runtime"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

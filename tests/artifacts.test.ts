@@ -6,6 +6,7 @@ import { handleArtifacts } from "../lib/artifacts/api";
 import { renderArtifact } from "../lib/artifacts/render";
 import { ReportSheetProvider, sheetRows } from "../lib/artifacts/sheets";
 import {
+  validateTemplate,
   ArtifactError,
   hash,
   reportInputs,
@@ -439,8 +440,13 @@ test("Google report export creates one tab atomically and preserves subsequent m
   values[13][2] = "Manual edit";
   await assert.rejects(provider.apply(j, true), /manual edits/);
   assert.equal(writes, 1);
-  await assert.rejects(provider.apply({...j,id:'b'.repeat(64)},true,async()=>{throw new ArtifactError(403,'Grant revoked during preflight');}),/revoked during preflight/);
-  assert.equal(writes,1);
+  await assert.rejects(
+    provider.apply({ ...j, id: "b".repeat(64) }, true, async () => {
+      throw new ArtifactError(403, "Grant revoked during preflight");
+    }),
+    /revoked during preflight/,
+  );
+  assert.equal(writes, 1);
 });
 test("spreadsheet export requires distinct grant and designated approval; revoked grants stop dispatch", async () => {
   const f = fixture();
@@ -475,4 +481,54 @@ test("spreadsheet export requires distinct grant and designated approval; revoke
       .status,
     "approved",
   );
+});
+
+test("PNG branding stays embedded in editable slides and rejects unsupported or unreadable assets", async () => {
+  const f = fixture();
+  const j = (await f.prepare("pptx")).item;
+  const template = {
+    id: "brand-test",
+    name: "Brand test",
+    format: "pptx",
+    brand: {
+      name: "Controlled brand",
+      font: "Arial",
+      accent: "234E70",
+      logo: {
+        base64:
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9X8AAAAASUVORK5CYII=",
+      },
+    },
+  };
+  assert.throws(
+    () =>
+      validateTemplate(
+        { ...template, brand: { ...template.brand, accent: "FFFFFF" } },
+        "ceo",
+        1,
+      ),
+    /darker/,
+  );
+  assert.throws(
+    () =>
+      validateTemplate(
+        {
+          ...template,
+          brand: {
+            ...template.brand,
+            logo: { base64: Buffer.from("icns").toString("base64") },
+          },
+        },
+        "ceo",
+        1,
+      ),
+    /PNG/,
+  );
+  j.template = validateTemplate(template, "ceo", 1);
+  const result = await renderArtifact(j),
+    zip = await JSZip.loadAsync(result.bytes);
+  assert.ok(zip.file(/^ppt\/media\/.*\.png$/).length > 0);
+  const slide = await zip.file("ppt/slides/slide1.xml")!.async("string");
+  assert.match(slide, /Controlled brand/);
+  assert.match(slide, /<p:pic>/);
 });
