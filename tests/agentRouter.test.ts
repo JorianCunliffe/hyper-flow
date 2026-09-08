@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { agentReplyAllowance, agentReplyMode, decideProjectRoute, triageVisibleToProject } from '../lib/agentRouter.js';
+import { agentReplyAllowance, agentReplyMode, decideProjectRoute as route, triageVisibleToProject } from '../lib/agentRouter.js';
 import type { ConversationContext, Project, TenantAgentProfile } from '../types.js';
+// Routing fixtures represent the verified primary person unless a case overrides it.
+const decideProjectRoute = (input: Parameters<typeof route>[0]) => route({personId:'person_primary', ...input});
 
 const project = (id: string, name: string): Project => ({
   id, name, company: 'Tenant', type: 'Other', startDate: 0,
@@ -10,6 +12,7 @@ const project = (id: string, name: string): Project => ({
 
 const profile = (overrides: Partial<TenantAgentProfile> = {}): TenantAgentProfile => ({
   agentId: 'agent_1', displayName: 'Coach', timezone: 'Australia/Brisbane',
+  primaryPersonId: 'person_primary',
   allowedProjectIds: ['coaching', 'email'], clarificationPolicy: 'when_ambiguous',
   ...overrides
 });
@@ -76,6 +79,7 @@ describe('omnichannel project routing', () => {
   });
 
   test('fails closed for an inbound person until primary identity or grants are configured', () => {
+    assert.equal(route({content:'Daily Coaching',projects,profile:profile({primaryPersonId:undefined})}).kind,'unavailable');
     assert.equal(decideProjectRoute({ content: 'Daily Coaching', projects, profile: profile(), personId: 'person_unconfigured' }).kind, 'unavailable');
     assert.equal(decideProjectRoute({
       content: 'Daily Coaching', projects, profile: profile({ primaryPersonId: 'person_primary' }), personId: 'person_primary'

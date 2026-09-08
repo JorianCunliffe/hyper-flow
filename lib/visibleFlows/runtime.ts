@@ -5,6 +5,13 @@ import { serverExecutor } from "../serverExecutor.js";
 import { HttpCommunicationsClient } from "../communications/client.js";
 import { findProject, readTenantAgentProfile } from "../serverStore.js";
 import {
+  requireOrganizationMember,
+  claimContactDispatch,
+  readOperationalCommitment,
+} from "../serverStore.js";
+import { operatingSnapshot } from "../cockpit/snapshot.js";
+import { createAsk } from "../asks/createAsk.js";
+import {
   FLOW_CATALOG,
   FlowError,
   type FlowRun,
@@ -32,6 +39,7 @@ export const executeVisibleStep = async (
     >;
     profile?: typeof readTenantAgentProfile;
     executor?: typeof serverExecutor;
+    contactClaim?: typeof claimContactDispatch;
   } = {},
 ): Promise<ActionOutcome> => {
   // Recheck resource/tenant authority on every dispatch, never from model output.
@@ -63,6 +71,36 @@ export const executeVisibleStep = async (
       },
     };
   }
+  if (step.action === "read_operations") {
+    await requireOrganizationMember(run.createdBy, orgId);
+    const snapshot = await operatingSnapshot({ orgId, uid: run.createdBy }, [
+      run.projectId,
+    ]);
+    return {
+      status: "success",
+      output: {
+        operating_snapshot: snapshot,
+        evidence_complete: !snapshot.incomplete,
+      },
+    };
+  }
+  if (step.action === "collect_update")
+    return {
+      status: "pending",
+      output: {
+        ask: createAsk({
+          taskId: step.id,
+          projectId: run.projectId,
+          runId: operationId,
+          askId: `ask_${run.id}_${step.id}`,
+          question: step.inputs.question,
+          responseType: "question",
+          assignees: [run.createdBy],
+          channels: ["web"],
+        }),
+      },
+      logs: ["Waiting for the run creator to review the update."],
+    };
   if (["draft_email", "send_sms", "outgoing_call"].includes(step.action)) {
     const profile = await (deps.profile || readTenantAgentProfile)(orgId);
     const permission =
@@ -99,6 +137,43 @@ export const executeVisibleStep = async (
       status: "success",
       output: { draft_receipt: receipt, email_sent: false },
     };
+  }
+  if (step.action === "send_sms" || step.action === "outgoing_call") {
+    if (step.inputs.followUp === "true") {
+      if (!step.sources.length)
+        throw new FlowError(
+          409,
+          "Follow-up requires reviewed obligation versions",
+        );
+      for (const source of step.sources) {
+        const match = /^(ob_[a-zA-Z0-9_-]+)@(\d+)$/.exec(source);
+        if (!match)
+          throw new FlowError(
+            409,
+            "Follow-up source is not a pinned obligation",
+          );
+        const row = await readOperationalCommitment(orgId, match[1]);
+        if (
+          !row ||
+          row.projectId !== run.projectId ||
+          row.version !== Number(match[2]) ||
+          ["candidate", "fulfilled", "cancelled", "dismissed"].includes(
+            row.state,
+          )
+        )
+          throw new FlowError(
+            409,
+            "An obligation changed or closed. Review the follow-up inputs before contacting anyone.",
+          );
+      }
+    }
+    const claim = await (deps.contactClaim || claimContactDispatch)(orgId, {
+      operationId,
+      target: step.inputs.to,
+      channel: step.action === "send_sms" ? "sms" : "voice",
+      coalesce: step.inputs.followUp === "true",
+    });
+    if (!claim.allowed) throw new FlowError(409, claim.reason);
   }
   // Inputs that authorize recipients/actions are pinned literals. Prior output
   // is evidence for report generation only, never a template substitution source.
@@ -180,8 +255,11 @@ export async function advanceVisibleRun(
           run.snapshot.milestones.every((m) =>
             isNodeComplete(m, run.snapshot.projectData),
           )
-        )
+        ) {
           run.status = "completed";
+          run.revision++;
+          record.revision++;
+        }
         return record;
       }
       claimedStep = ready;
@@ -207,6 +285,7 @@ export async function advanceVisibleRun(
       .actionConfig!.lastRun!;
     if (operation.output?.claimToken !== claimToken) return claimed;
     let outcome: ActionOutcome;
+    let definitiveFailure = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       outcome = await Promise.race([
@@ -225,6 +304,8 @@ export async function advanceVisibleRun(
         }),
       ]);
     } catch (error: any) {
+      definitiveFailure =
+        error instanceof FlowError && error.status >= 400 && error.status < 500;
       outcome = {
         status: "error",
         error: error?.message || "Dispatch failed; reconcile before retry",
@@ -234,6 +315,7 @@ export async function advanceVisibleRun(
     }
     if (
       outcome.status === "error" &&
+      !definitiveFailure &&
       ["draft_email", "send_sms", "outgoing_call"].includes(step.action)
     ) {
       // An HTTP failure may occur after provider acceptance. Only a correlated
@@ -299,6 +381,12 @@ export async function settleVisibleCallback(
     const { record, run } = requireRun(current, runId);
     const old = run.snapshot.milestones.find((m) => m.id === nodeId)
       ?.actionConfig?.lastRun;
+    if (
+      !["send_sms", "outgoing_call"].includes(
+        run.plan.steps.find((s) => s.id === nodeId)?.action || "",
+      )
+    )
+      return record;
     if (
       run.projectId !== projectId ||
       old?.id !== match.runId ||

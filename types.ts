@@ -159,6 +159,10 @@ export interface TenantAgentProfile {
   displayName: string;
   timezone: string;
   primaryPersonId?: string;
+  primaryUserId?: string;
+  receptionistEnabled?: boolean;
+  receptionistProjectId?: string;
+  contactWindow?: {startHour:number;endHour:number;maxPerDay:number;maxPerContact:number};
   defaultProjectId?: string;
   allowedProjectIds?: string[];
   /** Optional person-specific grants keyed by the stable Communications person UUID. */

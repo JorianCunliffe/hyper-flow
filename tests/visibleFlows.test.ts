@@ -40,6 +40,7 @@ test("channel execution preserves approved literals, checks current authority, a
   let dispatches = 0;
   const deps = {
     projectExists: async () => true,
+    contactClaim: async () => ({ allowed: true, reason: "" }),
     profile: async () => ({ automaticActions: ["send", "draft"] }) as any,
     executor: async (_task: string, template: string, data: any) => {
       dispatches++;
@@ -305,8 +306,24 @@ test("version approval, durable concurrent dispatch, completed review and templa
 });
 test("pending dispatch survives replay; exact callbacks settle after cancellation without advancing", async () => {
   const { store, request } = fixture();
-  let row = (await request({ operation: "create", projectId: parent.id, plan }))
-    .item!;
+  const channelPlan = {
+    ...plan,
+    steps: [
+      {
+        ...plan.steps[0],
+        action: "send_sms",
+        inputs: { to: "+61415828522", body: "Fixture only" },
+      },
+      plan.steps[1],
+    ],
+  };
+  let row = (
+    await request({
+      operation: "create",
+      projectId: parent.id,
+      plan: channelPlan,
+    })
+  ).item!;
   row = (
     await request({
       operation: "approve",
@@ -461,5 +478,116 @@ test("missing-input Ask is separate from approval; timeout and failed operations
     (await store.read(member.orgId, row.id))!.runs[0].snapshot.milestones[0]
       .actionConfig!.lastRun!.logs![0],
     /unknown/,
+  );
+});
+
+test("supplier review Ask rejects provider completion and other reviewers, and cancellation closes the Ask", async () => {
+  const { store, request } = fixture();
+  let row = (
+    await request({
+      operation: "create",
+      projectId: parent.id,
+      plan: {
+        name: "Review update",
+        steps: [
+          {
+            id: "review",
+            name: "Review actual update",
+            action: "collect_update",
+            owner: member.uid,
+            dependsOn: [],
+            inputs: { question: "What did the supplier actually provide?" },
+            sources: [],
+          },
+        ],
+      },
+    })
+  ).item!;
+  row = (
+    await request({
+      operation: "approve",
+      id: row.id,
+      expectedRevision: row.revision,
+      version: 1,
+      hash: row.versions[0].hash,
+    })
+  ).item!;
+  row = (
+    await request({
+      operation: "start",
+      id: row.id,
+      expectedRevision: row.revision,
+      version: 1,
+      hash: row.versions[0].hash,
+      runKey: "review_fixture",
+    })
+  ).item!;
+  const execute = (org: any, run: any, step: any, operation: any) =>
+    executeVisibleStep(org, run, step, operation, {
+      projectExists: async () => true,
+    });
+  await advanceVisibleRun(member.orgId, row.id, "review_fixture", {
+    store,
+    execute,
+  });
+  row = (await store.read(member.orgId, row.id))!;
+  const saved = row.runs[0].snapshot.milestones[0].actionConfig!.lastRun!;
+  assert.equal(saved.status, "pending");
+  const callback = await settleVisibleCallback(
+    member.orgId,
+    parent.id,
+    { nodeId: "review", runId: saved.id!, externalId: "provider-receipt" },
+    { status: "success" },
+    { store, execute },
+  );
+  assert.equal(callback?.ok, false);
+  const body = {
+    operation: "answer_update",
+    id: row.id,
+    expectedRevision: row.revision,
+    runId: "review_fixture",
+    nodeId: "review",
+    askId: saved.output.ask.id,
+    note: "The supplier has not yet provided evidence.",
+  };
+  await assert.rejects(
+    request(body, { ...member, uid: "other-reviewer" }),
+    /run creator/,
+  );
+  row = (await request(body)).item!;
+  assert.equal(
+    row.runs[0].snapshot.milestones[0].actionConfig!.lastRun!.output.ask.status,
+    "answered",
+  );
+  await assert.rejects(
+    request({ ...body, expectedRevision: row.revision }),
+    /unavailable/,
+  );
+  row = (
+    await request({
+      operation: "start",
+      id: row.id,
+      expectedRevision: row.revision,
+      version: 1,
+      hash: row.versions[0].hash,
+      runKey: "cancel_fixture",
+    })
+  ).item!;
+  await advanceVisibleRun(member.orgId, row.id, "cancel_fixture", {
+    store,
+    execute,
+  });
+  row = (await store.read(member.orgId, row.id))!;
+  row = (
+    await request({
+      operation: "cancel",
+      id: row.id,
+      expectedRevision: row.revision,
+      runId: "cancel_fixture",
+    })
+  ).item!;
+  assert.equal(
+    row.runs[1].snapshot.milestones[0].actionConfig!.lastRun!.output.ask.status,
+    "cancelled",
   );
 });

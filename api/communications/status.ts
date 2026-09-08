@@ -262,6 +262,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ agent, mailboxes, workspaces, people });
       }
       if (req.method === 'PATCH') {
+        await (await import('../../lib/cockpit/profileAccess.js')).assertChannelProfileAccess(member, req.body?.agent || {});
         const agent = await saveTenantAgentProfile(member.orgId, req.body?.agent || {});
         return res.status(200).json({ agent });
       }

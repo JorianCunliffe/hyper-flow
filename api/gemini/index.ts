@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
-import { handleVisibleFlows } from '../../lib/visibleFlows/api.js';
+import { handleVisibleFlows, publicFlowResponse } from '../../lib/visibleFlows/api.js';
 import { FlowError } from '../../lib/visibleFlows/model.js';
+import { handleCockpit } from '../../lib/cockpit/api.js';
 
 const brainstormSubtasks = async (req: VercelRequest, res: VercelResponse) => {
   const { milestoneName, projectContext } = req.body || {};
@@ -72,7 +73,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const member = await requireAppMember(req);
     const action = typeof req.query.action === 'string' ? req.query.action : '';
-    if (action === 'flows') return res.status(200).json(await handleVisibleFlows(req,member));
+    if (action === 'flows') return res.status(200).json(publicFlowResponse(await handleVisibleFlows(req,member)));
+    if (action === 'cockpit') return res.status(200).json(publicFlowResponse(await handleCockpit(req,member)));
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     if (action === 'brainstormSubtasks') return await brainstormSubtasks(req, res);
     if (action === 'generateProjectStructure') return await generateProjectStructure(req, res);

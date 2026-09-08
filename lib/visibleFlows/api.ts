@@ -16,6 +16,18 @@ import {
   type StepExecutor,
 } from "./runtime.js";
 import { HttpCommunicationsClient } from "../communications/client.js";
+import { applyActionRun } from "../flowOrchestrator.js";
+import { recordAskResponse } from "../humanAsk.js";
+import { validateResponse } from "../askResponses.js";
+
+/** Web callers answer as authenticated members; channel capability tokens stay server-side. */
+export function publicFlowResponse(value: unknown): unknown {
+  return JSON.parse(
+    JSON.stringify(value, (key, item) =>
+      key === "token" || key === "ask_token" ? undefined : item,
+    ),
+  );
+}
 
 export async function compileVisibleFlow(prompt: string) {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -296,10 +308,65 @@ export async function handleVisibleFlows(
     } else {
       const run = record.runs.find((r) => r.id === body.runId);
       if (!run) throw new FlowError(404, "Run not found");
-      if (operation === "pause" || operation === "cancel") {
+      if (operation === "answer_update") {
+        const node = run.snapshot.milestones.find((m) => m.id === body.nodeId);
+        const saved = node?.actionConfig?.lastRun;
+        const ask = saved?.output?.ask;
+        if (
+          run.status === "cancelled" ||
+          run.plan.steps.find((s) => s.id === body.nodeId)?.action !==
+            "collect_update" ||
+          saved?.status !== "pending" ||
+          ask?.status !== "open" ||
+          ask.id !== body.askId
+        )
+          throw new FlowError(409, "The current update Ask is unavailable");
+        if (!ask.assignees?.includes(member.uid))
+          throw new FlowError(
+            403,
+            "This update Ask belongs to the run creator",
+          );
+        if (
+          typeof body.note !== "string" ||
+          !body.note.trim() ||
+          body.note.length > 4000
+        )
+          throw new FlowError(
+            422,
+            "Enter the reviewed update or explain what is still missing",
+          );
+        const response = {
+          id: responseId,
+          at: now,
+          via: "web" as const,
+          actor: member.uid,
+          text: body.note.trim(),
+        };
+        const invalid = validateResponse(ask, response);
+        if (invalid) throw new FlowError(422, invalid);
+        run.snapshot = applyActionRun(run.snapshot, body.nodeId, {
+          ...saved,
+          status: "success",
+          executionState: "completed",
+          resolvedAt: now,
+          output: {
+            ask: recordAskResponse(ask, response),
+            reviewed_update: body.note.trim(),
+            providedBy: member.uid,
+            verification:
+              "Human-entered review; no provider receipt or obligation fulfillment is inferred.",
+          },
+        });
+      } else if (operation === "pause" || operation === "cancel") {
         if (run.status === "completed" || run.status === "cancelled")
           throw new FlowError(409, "Run is already terminal");
         run.status = operation === "pause" ? "paused" : "cancelled";
+        if (operation === "cancel") {
+          for (const node of run.snapshot.milestones) {
+            const ask = node.actionConfig?.lastRun?.output?.ask;
+            if (ask?.status === "open") ask.status = "cancelled";
+          }
+        }
       } else if (operation === "resume") {
         if (run.status !== "paused")
           throw new FlowError(409, "Only paused runs can resume");

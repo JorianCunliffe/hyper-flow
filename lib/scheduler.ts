@@ -10,6 +10,7 @@ export {
   reconciliationCursor
 } from './triage/runEmailTriage.js';
 import { processAgentInbox } from './agentRouter.js';
+import { runVisibleRoutine } from './cockpit/scheduledRoutines.js';
 import {
   advanceTenantSchedule,
   claimDueCoachingRetries,
@@ -59,7 +60,7 @@ export const runTenantSchedule = async (
   if (schedule.activity === 'flow_start') {
     let actionError: unknown;
     try {
-      const outcome = await advanceScheduledServerFlow(schedule.orgId, schedule.projectId, {
+      const outcome = schedule.flowId?.startsWith('visible:') ? await runVisibleRoutine(schedule,run.id) : await advanceScheduledServerFlow(schedule.orgId, schedule.projectId, {
         scheduleId: schedule.id,
         scheduleRunId: run.id,
         scheduledFor,
