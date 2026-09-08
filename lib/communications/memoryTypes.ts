@@ -1,5 +1,5 @@
 /** Evidence remains owned by Communications; these are transient REST DTOs. */
-export type MemoryKind = 'search' | 'person' | 'thread' | 'project' | 'meeting' | 'loose_ends';
+export type MemoryKind = 'search' | 'evidence' | 'person' | 'thread' | 'project' | 'meeting' | 'loose_ends';
 export interface MemoryRequest {
   kind: MemoryKind; id?: string; query?: string; person_id?: string;
   external_project_id?: string; allowed_project_ids?: string[]; include_private?: boolean; limit?: number;

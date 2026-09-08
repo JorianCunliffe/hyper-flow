@@ -263,7 +263,7 @@ export async function handleArtifacts(
           new HttpCommunicationsClient(),
         )
       )(member.orgId, {
-        kind: "search",
+        kind: "evidence",
         external_project_id: projectId,
         allowed_project_ids: [projectId],
         include_private: false,

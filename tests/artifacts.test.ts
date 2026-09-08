@@ -110,7 +110,7 @@ function fixture() {
     projects: async () => [{ id: "alpha", name: "Alpha project" }] as any,
     membership: async () => ({ role: "owner" }) as any,
     snapshot: async () => structuredClone(snapshot),
-    memory: async () => structuredClone(memory),
+    memory: async (_org, request) => { assert.equal(request.kind,"evidence"); assert.deepEqual(request.allowed_project_ids,["alpha"]); return structuredClone(memory); },
     render: async (j: ArtifactJob) => {
       renders++;
       return renderArtifact(j);

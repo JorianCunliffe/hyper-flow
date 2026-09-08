@@ -275,7 +275,7 @@ export function reportInputs(
     ...snapshot.notices,
     "States reflect the records read at the observation time. This is not a historical state reconstruction.",
     "Communication excerpts are supporting evidence, not newly accepted obligations.",
-    "Communication context is a bounded selection of at most 30 search matches, not an exhaustive history.",
+    "Communication evidence contains at most 30 permitted source messages from the latest 100 project records. It excludes derived summaries and is not an exhaustive history.",
   ];
   if (!rows.length)
     notices.push("No accepted work was returned for this project.");

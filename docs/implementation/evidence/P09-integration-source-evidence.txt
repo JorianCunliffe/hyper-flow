@@ -1,13 +1,13 @@
-(node:19488) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(node:6388) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 i  emulators: Starting emulators: database
 i  emulators: Detected demo project ID "demo-hyperflow", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
 i  database: Database Emulator logging to database-debug.log
 i  Running script: node --import tsx --test tests/integration/phase09.test.ts
-(node:1612) Warning: `--localstorage-file` was provided without a valid path
+(node:4572) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-[2026-09-08T20:47:54.034Z]  @firebase/database: FIREBASE WARNING: set at /artifacts/phase09_fixture/jobs/forged failed: permission_denied 
-✔ Phase 09 real stores keep office flows waiting for file review, preserve cold claims and tenant isolation (5362.3892ms)
+[2026-09-08T21:00:01.237Z]  @firebase/database: FIREBASE WARNING: set at /artifacts/phase09_fixture/jobs/forged failed: permission_denied 
+✔ Phase 09 real stores keep office flows waiting for file review, preserve cold claims and tenant isolation (5892.5689ms)
 ℹ tests 1
 ℹ suites 0
 ℹ pass 1
@@ -15,7 +15,7 @@ i  Running script: node --import tsx --test tests/integration/phase09.test.ts
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 5967.9595
+ℹ duration_ms 8186.6504
 +  Script exited successfully (code 0)
 i  emulators: Shutting down emulators.
 i  database: Stopping Database Emulator
