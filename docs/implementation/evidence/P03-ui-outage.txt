@@ -1,0 +1,24 @@
+Local synthetic UI fixture â€” no real accounts, messages or API writes.
+
+Communication context
+
+Review source-linked context and promise evidence across your accessible projects. Private sources are excluded. Suggested dates need confirmation; these are not tracked obligations.
+
+Search communications
+Person
+Conversation thread
+Project
+Meeting
+Loose ends
+All accessible projects
+Alpha settlement
+Load context
+
+Context is unavailable. Please try again. This does not mean there is no history.
+
+{
+  "kind": "search",
+  "id": "",
+  "projectId": "",
+  "query": "outage"
+}

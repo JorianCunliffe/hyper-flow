@@ -1,3 +1,4 @@
+import type { MemoryRequest, MemoryEnvelope } from './memoryTypes.js';
 import { CommunicationsApiError, CommunicationsConfigurationError } from './errors.js';
 import { assertEmailSendAllowed } from './emailPolicy.js';
 import type {
@@ -54,6 +55,16 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     this.baseUrl = parsed.toString().replace(/\/$/, '');
     this.apiKey = apiKey;
     this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  async getMemoryContext(tenantId: string, input: MemoryRequest): Promise<MemoryEnvelope> {
+    this.requireTenant(tenantId);
+    const result = await this.rawRequest('/v1/context/memory', { method: 'POST', tenantId, body: input });
+    if (result?.contract_version !== 'memory-context.v1' || !result.data || typeof result.data !== 'object'
+      || !['current', 'stale'].includes(result.memory_status?.state) || !Number.isFinite(Date.parse(result.memory_status?.retrieved_at))) {
+      throw new CommunicationsApiError('Memory context is unavailable; Communications needs a compatible version', 503);
+    }
+    return result;
   }
 
   sendSms(request: SendSmsRequest): Promise<CommunicationResult> {

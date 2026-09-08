@@ -1,3 +1,4 @@
+import { handleMemoryContextRequest } from './lib/communications/memoryContext';
 import express from "express";
 import path from "path";
 import cors from "cors";
@@ -131,6 +132,15 @@ async function startServer() {
     } catch (error: any) {
       return res.status(error instanceof ApiAuthError ? error.status : /Invite/.test(error?.message || '') ? 400 : 500)
         .json({ error: error?.message || 'Request failed' });
+    }
+  });
+
+  app.all('/api/communications/memory', async (req, res) => {
+    try {
+      const member = await requireAppMember(req as any);
+      return res.status(200).json(await handleMemoryContextRequest(req, member));
+    } catch (error: any) {
+      return res.status(error instanceof ApiAuthError ? error.status : threadRegisterErrorStatus(error)).json({ error: error?.message || 'Memory context unavailable' });
     }
   });
 

@@ -1,0 +1,26 @@
+Local synthetic UI fixture â€” no real accounts, messages or API writes.
+
+Communication context
+
+Review source-linked context and promise evidence across your accessible projects. Private sources are excluded. Suggested dates need confirmation; these are not tracked obligations.
+
+Search communications
+Person
+Conversation thread
+Project
+Meeting
+Loose ends
+All accessible projects
+Alpha settlement
+Load context
+
+Retrieved 08/09/2026, 19:49:26. Bounded context view; results may not include all history.
+
+No eligible evidence was returned for this view. Try another scope or search.
+
+{
+  "kind": "search",
+  "id": "",
+  "projectId": "",
+  "query": "empty"
+}

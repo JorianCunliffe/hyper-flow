@@ -1,3 +1,4 @@
+import { handleMemoryContextRequest } from '../../lib/communications/memoryContext.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { CommunicationsPersonRef } from '../../lib/communications/types.js';
 import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
@@ -82,6 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const member = await requireAppMember(req);
+    if (action === 'memory') return res.status(200).json(await handleMemoryContextRequest(req, member));
     if (action === 'email_policy') return res.status(200).json(await accountEmailPolicy(member, req.method, req.body));
     if (action && (THREAD_REGISTER_ACTIONS as readonly string[]).includes(action)) {
       return res.status(200).json(await handleThreadRegisterRequest(action, req, member));

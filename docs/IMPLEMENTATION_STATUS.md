@@ -32,7 +32,7 @@ Last updated: 8 September 2026.
 | P00 | Current baseline and mismatch register | Baseline accepted | None | [HyperFlow record](implementation/P00.md); Communications records in each checkout's `docs/implementation/P00.md` |
 | P01 | Ownership, authority and API/event contracts | Merged to main; runtime verification pending | P00 | [Record](implementation/P01.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/2); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/2) |
 | P02 | Canonical cross-channel threads and register | Merged to main; locally verified; runtime acceptance pending | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
-| P03 | Safe use of existing Communications memory | Not started | P02 | No phase record yet |
+| P03 | Safe use of existing Communications memory | Implemented; locally verified; rollout pending | P02 | [P03 record](implementation/P03.md) |
 | P04 | HyperFlow commitments and Ask lifecycle | Not started | P03 | No phase record yet |
 | P05 | Transcribed meeting ingestion and enrichment | Not started | P03, P04 | No phase record yet |
 | P06 | Visible reusable flows from requests | Not started | P04; P05 for meeting inputs | No phase record yet |
@@ -47,7 +47,7 @@ Replace “No phase record yet” with links to the actual per-app records when 
 
 ## Next goal
 
-Phase 01 and Phase 02 are merged into both main branches. Deploy Communications and apply missing migrations through 020; its health still reports the older v2.3.0 build. Verify HyperFlow automatic production deployment and then authenticated cross-service acceptance. Preserve account email grants; no live communications were sent during integration. Phase 03 remains unstarted.
+Phase 01 and Phase 02 are merged into both main branches. Deploy Communications and apply missing migrations through 020; its health still reports the older v2.3.0 build. Verify HyperFlow automatic production deployment and then authenticated cross-service acceptance. Preserve account email grants; no live communications were sent during integration. Phase 03 is implemented and locally verified on its own branches; see the P03 record. Review/land it, deploy Communications first, then verify scoped context with real membership. Phase 04 remains unstarted.
 
 ## Decision log
 
