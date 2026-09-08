@@ -111,6 +111,85 @@ export async function handleVisibleFlows(
   if (typeof body.id !== "string" || !/^[a-f0-9-]{36}$/.test(body.id))
     throw new FlowError(422, "Invalid flow identity");
   const initial = assertScope(await store.read(member.orgId, body.id));
+  if (operation === "reconcile_artifact") {
+    const run = initial.runs.find((r) => r.id === body.runId),
+      node = run?.snapshot.milestones.find((m) => m.id === body.nodeId),
+      saved = node?.actionConfig?.lastRun;
+    if (
+      !run ||
+      run.status === "cancelled" ||
+      run.plan.steps.find((s) => s.id === body.nodeId)?.action !==
+        "prepare_office_report" ||
+      !saved?.output?.artifact_job_id
+    )
+      throw new FlowError(409, "Choose an existing report preparation step");
+    const { handleArtifacts } = await import("../artifacts/api.js");
+    const artifact: any = await handleArtifacts(
+      {
+        method: "GET",
+        query: { projectId: run.projectId, id: saved.output.artifact_job_id },
+      },
+      member,
+    );
+    if (
+      artifact.item.status !== "reviewed" ||
+      artifact.item.inputHash !== saved.output.artifact_input_hash
+    )
+      throw new FlowError(
+        409,
+        "The exact report file still requires review in Office outputs",
+      );
+    await handleArtifacts(
+      {
+        method: "GET",
+        query: {
+          projectId: run.projectId,
+          id: artifact.item.id,
+          operation: "download",
+        },
+      },
+      member,
+    );
+    const updated = await store.transact(member.orgId, body.id, (current) => {
+      const record = assertScope(current),
+        r = record.runs.find((r) => r.id === body.runId),
+        n = r?.snapshot.milestones.find((m) => m.id === body.nodeId),
+        operation = n?.actionConfig?.lastRun;
+      if (
+        !r ||
+        r.status === "cancelled" ||
+        operation?.id !== saved.id ||
+        operation.output?.artifact_job_id !== artifact.item.id
+      )
+        throw new FlowError(409, "Report step changed");
+      if (operation.status === "success") return record;
+      if (operation.status !== "pending")
+        throw new FlowError(409, "Report step is no longer waiting");
+      r.snapshot = applyActionRun(r.snapshot, body.nodeId, {
+        ...operation,
+        status: "success",
+        executionState: "completed",
+        resolvedAt: Date.now(),
+        output: {
+          ...operation.output,
+          artifact_receipt: artifact.item.receipt,
+          review_required: false,
+        },
+      });
+      r.revision++;
+      record.revision++;
+      return record;
+    });
+    return {
+      item:
+        updated.runs.find((r) => r.id === body.runId)?.status === "running"
+          ? await advanceVisibleRun(member.orgId, body.id, body.runId, {
+              store,
+              execute: deps.execute,
+            })
+          : updated,
+    };
+  }
   if (operation === "reconcile") {
     const run = initial.runs.find((r) => r.id === body.runId);
     const step = run?.plan.steps.find((s) => s.id === body.nodeId);
