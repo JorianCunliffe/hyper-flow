@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createExternalEventRecord, hydrateCompletedCallPayload, isInboundCommunicationEvent, normalizeExternalEvent, terminalExternalEventResult, terminalExternalEventStatus } from '../lib/externalEvents';
+import { createExternalEventRecord, isStandaloneTerminalCommunication, hydrateCompletedCallPayload, isInboundCommunicationEvent, normalizeExternalEvent, terminalExternalEventResult, terminalExternalEventStatus } from '../lib/externalEvents';
 
 const fixture = (name: string): any => JSON.parse(readFileSync(
   new URL(`./fixtures/communications/${name}`, import.meta.url), 'utf8'
@@ -140,5 +140,32 @@ describe('external event inbox envelope', () => {
 
   test('rejects an event without an id before it can be claimed', () => {
     assert.throws(() => normalizeExternalEvent({ source: 'communications', type: 'call.completed' }), /event_id is required/);
+  });
+});
+
+
+describe('standalone terminal delivery routing', () => {
+  const event = (correlation: Record<string, string> = {}, extra = {}) => normalizeExternalEvent({
+    event_id: 'evt_standalone', source: 'communications', type: 'sms.delivered',
+    communication_id: 'comm_standalone', correlation: { tenant_id: 'org_1', ...correlation }, ...extra
+  });
+  test('records independent SMS and call outcomes without requiring a workflow', () => {
+    for (const type of ['sms.delivered', 'sms.failed', 'call.completed', 'call.failed']) {
+      assert.equal(isStandaloneTerminalCommunication(event({}, { type })), true);
+      assert.equal(isStandaloneTerminalCommunication(event({ project_id: 'project_1' }, { type })), true);
+    }
+  });
+  test('never downgrades partial or complete workflow correlation to standalone delivery', () => {
+    for (const correlation of [{ run_id: 'run_1' }, { task_id: 'task_1' },
+      { project_id: 'project_1', run_id: 'run_1', task_id: 'task_1' }]) {
+      assert.equal(isStandaloneTerminalCommunication(event(correlation)), false);
+    }
+  });
+  test('keeps Asks, agent conversations and missing identity outside standalone handling', () => {
+    for (const extra of [{ ask_id: 'ask_1' }, { purpose: { type: 'human_ask' } },
+      { purpose: { type: 'agent_conversation' } }, { communication_id: undefined },
+      { correlation: {} }, { source: 'other' }, { type: 'sms.received' }]) {
+      assert.equal(isStandaloneTerminalCommunication(event({}, extra)), false);
+    }
   });
 });

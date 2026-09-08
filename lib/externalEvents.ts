@@ -193,6 +193,15 @@ export const terminalExternalEventStatus = (
   return null;
 };
 
+/** A project alone groups communication; a run or task claims workflow ownership. */
+export const isStandaloneTerminalCommunication = (event: ExternalEventEnvelope): boolean =>
+  event.source === 'communications'
+  && Boolean(event.correlation.tenant_id && event.communication_id)
+  && !event.correlation.run_id && !event.correlation.task_id
+  && !event.ask_id && event.purpose?.type !== 'human_ask'
+  && event.purpose?.type !== 'agent_conversation'
+  && terminalExternalEventStatus(event.type, event.payload) !== null;
+
 export const terminalExternalEventResult = (event: ExternalEventEnvelope): {
   status: 'success' | 'error'; error?: string; log: string;
 } | null => {
@@ -421,6 +430,17 @@ export const receiveExternalEvent = async (raw: any): Promise<ExternalEventOutco
         log: outcome.log,
         pending: outcome.pending
       };
+    }
+
+    if (isStandaloneTerminalCommunication(event)) {
+      await writeCommunicationDeliveryState(orgId, event.communication_id!, {
+        eventId: event.event_id,
+        type: event.type,
+        occurredAt: event.occurred_at || Date.now(),
+        payload: event.payload
+      });
+      await finishExternalEventProcessing(orgId, event.event_id, 'processed');
+      return { ok: true, reason: 'standalone_delivery_recorded' };
     }
 
     if (event.type === 'call.completed' && event.communication_id && !payloadTranscriptText(event.payload)) {
