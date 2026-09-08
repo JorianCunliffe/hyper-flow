@@ -3,6 +3,21 @@ import { NodeType, type HumanAsk, type Project } from "../../types.js";
 import { createAsk } from "../asks/createAsk.js";
 
 export const FLOW_CATALOG = {
+  review_publication: {
+    label: "Review and verify a publication",
+    nodeType: NodeType.REPORT,
+    required: ["publicationId", "contentHash"],
+    effect:
+      "Waits for separate public-use approval and provider read-back in Publishing; this step sends nothing",
+    authority:
+      "Current project access; separate target grant and publishing Ask",
+    receipt: "Exact content fingerprint and current provider observation",
+    outputSchema: {
+      publication_id: "string",
+      publication_receipt: "provider observation",
+    },
+    timeoutSeconds: 60,
+  },
   check_artifact: {
     label: "Verify the reviewed Office file",
     nodeType: NodeType.REPORT,

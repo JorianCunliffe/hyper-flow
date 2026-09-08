@@ -111,6 +111,76 @@ export async function handleVisibleFlows(
   if (typeof body.id !== "string" || !/^[a-f0-9-]{36}$/.test(body.id))
     throw new FlowError(422, "Invalid flow identity");
   const initial = assertScope(await store.read(member.orgId, body.id));
+  if (operation === "reconcile_publication") {
+    const run = initial.runs.find((r) => r.id === body.runId);
+    const step = run?.plan.steps.find((s) => s.id === body.nodeId);
+    const saved = run?.snapshot.milestones.find((m) => m.id === body.nodeId)
+      ?.actionConfig?.lastRun;
+    if (
+      !run ||
+      run.status === "cancelled" ||
+      step?.action !== "review_publication" ||
+      !saved?.output?.publication_id
+    )
+      throw new FlowError(409, "Choose a waiting publication step");
+    const { publishingRequest } = await import("../publishing/store.js");
+    const result: any = await publishingRequest(
+      {
+        method: "POST",
+        body: {
+          operation: "reconcile",
+          projectId: run.projectId,
+          id: saved.output.publication_id,
+        },
+      },
+      member,
+    );
+    if (
+      result.item.state !== "verified" ||
+      result.item.contentHash !== step.inputs.contentHash ||
+      !result.item.receipt
+    )
+      throw new FlowError(409, "The exact publication is not verified");
+    const updated = await store.transact(member.orgId, body.id, (current) => {
+      const record = assertScope(current);
+      const r = record.runs.find((r) => r.id === body.runId);
+      const action = r?.snapshot.milestones.find((m) => m.id === body.nodeId)
+        ?.actionConfig?.lastRun;
+      if (
+        !r ||
+        r.status === "cancelled" ||
+        action?.id !== saved.id ||
+        action.output?.publication_content_hash !== result.item.contentHash
+      )
+        throw new FlowError(409, "Publication step changed");
+      if (action.status === "success") return record;
+      if (action.status !== "pending")
+        throw new FlowError(409, "Publication step is no longer waiting");
+      r.snapshot = applyActionRun(r.snapshot, body.nodeId, {
+        ...action,
+        status: "success",
+        executionState: "completed",
+        resolvedAt: Date.now(),
+        output: {
+          ...action.output,
+          publication_receipt: result.item.receipt,
+          verified_at: Date.now(),
+        },
+      });
+      r.revision++;
+      record.revision++;
+      return record;
+    });
+    return {
+      item:
+        updated.runs.find((r) => r.id === body.runId)?.status === "running"
+          ? await advanceVisibleRun(member.orgId, body.id, body.runId, {
+              store,
+              execute: deps.execute,
+            })
+          : updated,
+    };
+  }
   if (operation === "reconcile_artifact") {
     const run = initial.runs.find((r) => r.id === body.runId),
       node = run?.snapshot.milestones.find((m) => m.id === body.nodeId),

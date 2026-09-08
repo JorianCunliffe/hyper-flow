@@ -464,6 +464,31 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
                     {m.name}: {m.actionConfig?.lastRun?.status || "Not started"}
                   </summary>
                   <p>{m.actionConfig?.lastRun?.error}</p>
+                  {m.actionConfig?.lastRun?.output?.publication_id && (
+                    <div className="my-3 space-y-2">
+                      <a
+                        className="underline"
+                        href={`/?view=publishing&project=${encodeURIComponent(run.projectId)}`}
+                      >
+                        Open publication and its approval
+                      </a>
+                      {m.actionConfig.lastRun.status === "pending" &&
+                        run.status !== "cancelled" && (
+                          <button
+                            className={button}
+                            disabled={busy}
+                            onClick={() =>
+                              void command("reconcile_publication", {
+                                runId: run.id,
+                                nodeId: m.id,
+                              })
+                            }
+                          >
+                            Verify current publication
+                          </button>
+                        )}
+                    </div>
+                  )}
                   {m.actionConfig?.lastRun?.output?.artifact_job_id && (
                     <div className="my-3 space-y-2">
                       <a
