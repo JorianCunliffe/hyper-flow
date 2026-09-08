@@ -6,7 +6,7 @@ i  database: Database Emulator logging to database-debug.log
 i  Running script: node --import tsx --test tests/integration/phase11.test.ts
 (node:9296) Warning: `--localstorage-file` was provided without a valid path
 (Use `node --trace-warnings ...` to show where the warning was created)
-[2026-09-08T23:13:56.013Z]  @firebase/database: FIREBASE WARNING: set at /tenant_control/org_phase11/clients/forged failed: permission_denied 
+[2026-09-08T23:13:56.013Z]  @firebase/database: FIREBASE WARNING: set at /tenant_control/org_phase11/clients/forged failed: permission_denied
 ✔ Phase 11 tenant API credentials and workspace revisions use real isolated records (6449.2741ms)
 ℹ tests 1
 ℹ suites 0
