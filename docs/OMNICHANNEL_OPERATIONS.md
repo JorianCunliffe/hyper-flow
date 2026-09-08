@@ -2,6 +2,8 @@
 
 This runbook turns the source implementation in `OMNICHANNEL_AGENT_SPEC.md` into a controlled production rollout. Do not treat a successful build or mock provider ID as delivery evidence.
 
+Use `COMPREHENSIVE_ACCEPTANCE_PROGRAM.md` for the repeatable test IDs, live-run sequence, safety gates, and evidence record that accompany this operational runbook.
+
 ## 1. Release order
 
 1. Back up the Communications database and record the currently deployed revisions.
