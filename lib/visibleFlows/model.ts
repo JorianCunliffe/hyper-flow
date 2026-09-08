@@ -3,6 +3,26 @@ import { NodeType, type HumanAsk, type Project } from "../../types.js";
 import { createAsk } from "../asks/createAsk.js";
 
 export const FLOW_CATALOG = {
+  collect_update: {
+    label: "Review a received update",
+    nodeType: NodeType.REPORT,
+    required: ["question"],
+    effect: "Waits for an authenticated human response; sends nothing",
+    authority: "Run creator answers the Ask",
+    receipt: "Human Ask response and reviewer identity",
+    outputSchema: { reviewed_update: "string", providedBy: "string" },
+    timeoutSeconds: 60,
+  },
+  read_operations: {
+    label: "Read accepted work and decisions",
+    nodeType: NodeType.REPORT,
+    required: [],
+    effect: "Reads HyperFlow operational records for this project",
+    authority: "Current organization membership and project access",
+    receipt: "Obligation identities, accepted terms and snapshot time",
+    outputSchema: { operating_snapshot: "OperatingSnapshot" },
+    timeoutSeconds: 60,
+  },
   read_context: {
     label: "Read project communication evidence",
     nodeType: NodeType.REPORT,
@@ -27,6 +47,7 @@ export const FLOW_CATALOG = {
     label: "Send an SMS",
     nodeType: NodeType.SMS,
     required: ["to", "body"],
+    optional: ["followUp"],
     effect: "Sends a real SMS",
     authority: "Explicit flow approval and current Communications permission",
     receipt: "Communication and provider delivery outcome",
@@ -40,6 +61,7 @@ export const FLOW_CATALOG = {
     label: "Make a phone call",
     nodeType: NodeType.PHONE_CALL,
     required: ["to", "instructions"],
+    optional: ["followUp"],
     effect: "Places a real call",
     authority: "Explicit flow approval and current Communications permission",
     receipt: "Communication and terminal call outcome",
@@ -151,13 +173,20 @@ export function validatePlan(raw: any): { plan: FlowPlan; missing: string[] } {
     ];
     if (!s.inputs || typeof s.inputs !== "object" || Array.isArray(s.inputs))
       fail("Step inputs must be an object");
-    const allowed = new Set<string>(FLOW_CATALOG[action].required);
+    const entry = FLOW_CATALOG[action];
+    const allowed = new Set<string>([
+      ...entry.required,
+      ...("optional" in entry ? entry.optional : []),
+    ]);
     const inputs: Record<string, string> = {};
     for (const [key, value] of Object.entries(s.inputs)) {
       if (!allowed.has(key)) fail(`Unsupported input ${id}.${key}`);
       inputs[key] = bounded(value, 12000, `input ${id}.${key}`);
     }
-    for (const key of allowed) if (!inputs[key]) missing.push(`${id}.${key}`);
+    for (const key of entry.required)
+      if (!inputs[key]) missing.push(`${id}.${key}`);
+    if (inputs.followUp && !["true", "false"].includes(inputs.followUp))
+      fail("followUp must be true or false");
     if (
       inputs.to &&
       action === "draft_email" &&

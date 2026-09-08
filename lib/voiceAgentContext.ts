@@ -1,4 +1,6 @@
 import type { ProjectRoutingDecision } from '../types.js';
+import { channelOperatingContext } from './cockpit/channelContext.js';
+import { publicReceptionistInstructions } from './cockpit/receptionist.js';
 import {
   allowedProjectIdsForPerson,
   decideProjectRoute,
@@ -51,7 +53,10 @@ export const buildVoiceAgentContext = async (
     throw new Error('Voice service identity is not authorized for this tenant agent');
   }
   const allowed = allowedProjectIdsForPerson(profile, input.person_id);
-  if (allowed?.length === 0) throw new Error('Person is not authorized for this tenant agent');
+  if (allowed?.length === 0) {
+    if(!profile.receptionistEnabled)throw new Error('Person is not authorized for this tenant agent');
+    return{request_id:input.request_id,routing:{kind:'unavailable',reason:'no_projects',confidence:1,candidateProjectIds:[],decidedAt:now},greeting:'Hello. I can take a message for review. What is your name and how can we help?',instructions:publicReceptionistInstructions,candidates:[]};
+  }
 
   const [projects, existingContext] = await Promise.all([
     listTenantProjects(input.tenant_id),
@@ -95,7 +100,9 @@ export const buildVoiceAgentContext = async (
     listCoachingSessions(input.tenant_id, routing.projectId, 5),
     listTenantTriageItems(input.tenant_id, 15)
   ]);
-  const safeContext = {
+  const operating=await channelOperatingContext(input.tenant_id,input.person_id,routing.projectId);
+  const safeContext = operating.audience==='ceo' ? {
+    operating,
     project: safeProjectFacts(project),
     recentCoaching: sessions.map(session => ({
       scheduledFor: session.scheduledFor,
@@ -118,7 +125,7 @@ export const buildVoiceAgentContext = async (
         disposition: item.disposition,
         recommendation: clean(item.recommendation)
       }))
-  };
+  } : {operating};
   await saveConversationContext({
     id: input.thread_id,
     orgId: input.tenant_id,

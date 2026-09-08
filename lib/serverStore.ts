@@ -35,6 +35,7 @@ import { normalizeNodeAsks } from './humanAsk.js';
 import { upgradeLegacyEmailTriageProject } from './projectTemplates.js';
 import type { ExternalEventProcessingStatus, ExternalEventRecord } from './externalEvents.js';
 import { normalizeFlow, type FlowRecord } from './visibleFlows/model.js';
+import { normalizeContactWindow,claimContactDay,contactWindowOpen,type ContactDay } from './cockpit/contactPolicy.js';
 
 /**
  * Server-side persistence via the Firebase Admin SDK.
@@ -46,6 +47,21 @@ import { normalizeFlow, type FlowRecord } from './visibleFlows/model.js';
 const APP_NAME = 'hyperflow-server';
 
 export class ServerStoreUnavailable extends Error {}
+
+export async function claimContactDispatch(orgId:string,input:{operationId:string;target:string;channel:string;coalesce:boolean},now=Date.now()) {
+  const profile=await readTenantAgentProfile(orgId);if(!profile)throw new Error('Tenant contact policy is unavailable');
+  const policy=normalizeContactWindow(profile.contactWindow);
+  if(!contactWindowOpen(now,profile.timezone,policy))return{allowed:false,reason:'Outside the configured contact hours.'};
+  const day=new Intl.DateTimeFormat('en-CA',{timeZone:profile.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const reference=getDb().ref(`contact_dispatch_days/${safeRtdbKey(orgId)}/${safeRtdbKey(day)}`);
+  let listener=()=>{};let outcome:ReturnType<typeof claimContactDay>|undefined;
+  try{
+    await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});
+    const result=await reference.transaction((current:ContactDay|null)=>{outcome=claimContactDay(current,{...input,now},policy);return JSON.parse(JSON.stringify(outcome.row));},undefined,false);
+    if(!result.committed||!outcome)throw new Error('Contact budget claim was not saved');
+    return{allowed:outcome.allowed,reason:outcome.reason,...('existingOperationId' in outcome?{existingOperationId:outcome.existingOperationId}:{})};
+  }finally{reference.off('value',listener);}
+}
 
 export async function readVisibleFlow(orgId: string, id: string): Promise<FlowRecord | null> {
   const snap = await getDb().ref(`visible_flows/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).get();
@@ -1131,6 +1147,10 @@ export const normalizeTenantAgentProfile = (
     displayName: String(input.displayName ?? existing?.displayName ?? 'HyperFlow Agent').trim().slice(0, 120) || 'HyperFlow Agent',
     timezone,
     primaryPersonId: cleanOptionalString(input.primaryPersonId ?? existing?.primaryPersonId),
+    primaryUserId: cleanOptionalString(input.primaryUserId ?? existing?.primaryUserId),
+    receptionistEnabled: input.receptionistEnabled ?? existing?.receptionistEnabled ?? false,
+    receptionistProjectId: cleanOptionalString(input.receptionistProjectId ?? existing?.receptionistProjectId),
+    contactWindow: normalizeContactWindow(input.contactWindow ?? existing?.contactWindow),
     defaultProjectId: cleanOptionalString(input.defaultProjectId ?? existing?.defaultProjectId),
     allowedProjectIds: cleanStringList(input.allowedProjectIds ?? existing?.allowedProjectIds),
     personProjectAccess: personProjectAccess.length ? personProjectAccess : undefined,

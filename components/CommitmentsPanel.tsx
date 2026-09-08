@@ -17,7 +17,7 @@ async function api(path: string, body?: object, method = 'POST') {
   if (!response.ok) throw new Error(result.error || 'Obligations are unavailable. Please try again.');
   return result;
 }
-export const CommitmentsPanel: React.FC<{ orgId: string; projects: Project[] }> = ({ orgId, projects }) => {
+export const CommitmentsPanel: React.FC<{ orgId: string; projects: Project[]; initialId?:string }> = ({ orgId, projects,initialId }) => {
   const [rows,setRows] = useState<Commitment[]>([]); const [selected,setSelected] = useState<Commitment | null>(null);
   const [project,setProject] = useState(''); const [view,setView] = useState('all'); const [party,setParty] = useState('');
   const [parties,setParties] = useState<Array<{id:string;name:string}>>([]); const [viewer,setViewer] = useState('');
@@ -35,13 +35,14 @@ export const CommitmentsPanel: React.FC<{ orgId: string; projects: Project[] }> 
   useEffect(() => {
     let active = true; setRows([]); setSelected(null); setCandidates([]); setSearched(false); setSourceThread(''); setError(''); setBusy(true);
     const params = new URLSearchParams({ view, projectId: project, party });
-    Promise.all([api(`/api/commitments?${params}`), api('/api/commitments?view=parties')]).then(([result,options]) => {
+    Promise.all([api(`/api/commitments?${params}`), api('/api/commitments?view=parties'),initialId?api(`/api/commitments?id=${encodeURIComponent(initialId)}`):Promise.resolve(null)]).then(([result,options,focused]) => {
       if (!active) return;
       setRows(result.data); setNext(result.next); setViewer(result.viewerUid); setParties(options.data);
       setTerms({ ...emptyTerms, owner: `user:${result.viewerUid}` });
+      if(focused?.item)choose(focused.item);
     }).catch(failure => { if (active) setError(failure.message); }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
-  }, [orgId,project,view,party]);
+  }, [orgId,project,view,party,initialId]);
   const run = async (operation: () => Promise<void>) => { setBusy(true); setError(''); try { await operation(); } catch (failure: any) { setError(failure.message); } finally { setBusy(false); } };
   const save = (action: CommitmentCommand['action'], decision?: CommitmentCommand['decision']) => run(async () => {
     if (!selected) return;

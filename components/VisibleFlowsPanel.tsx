@@ -7,9 +7,9 @@ const field =
   "w-full rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-900";
 const button =
   "rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-40";
-async function api(body?: unknown) {
+async function api(body?: unknown, path = "/api/flows") {
   const response = await firebaseService.authorizedFetch(
-    "/api/flows",
+    path,
     body
       ? {
           method: "POST",
@@ -30,11 +30,14 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
   const [projectId, setProjectId] = useState("");
   const [prompt, setPrompt] = useState("");
   const [proposal, setProposal] = useState<FlowPlan | null>(null);
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedId, setSelectedId] = useState(
+    new URLSearchParams(window.location.search).get("flow") || "",
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [runKeys, setRunKeys] = useState<Record<string, string>>({});
+  const [scheduleTime, setScheduleTime] = useState("08:00");
   const selected = items.find((i) => i.id === selectedId);
   const latest = selected?.versions[selected.versions.length - 1];
   useEffect(() => {
@@ -44,6 +47,10 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
         if (active) {
           setItems(r.items);
           setCatalog(r.catalog);
+          const focused = r.items.find(
+            (row: FlowRecord) => row.id === selectedId,
+          );
+          if (focused) setProjectId(focused.projectId);
         }
       })
       .catch((e) => {
@@ -372,6 +379,79 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
               </p>
             ))}
           </details>
+          <div className="space-y-2 rounded-lg border p-3">
+            <h3 className="font-bold">Daily routine</h3>
+            <label>
+              Local run time
+              <input
+                type="time"
+                className={field}
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+              />
+            </label>
+            <p>
+              Uses your configured timezone and this exact approved version.
+              Channel limits still apply.
+            </p>
+            {latest.approvedBy && (
+              <button
+                className={button}
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    const r = await api(
+                      {
+                        operation: "schedule",
+                        definitionId: selected!.id,
+                        projectId: selected!.projectId,
+                        version: latest.version,
+                        hash: latest.hash,
+                        localTime: scheduleTime,
+                        enabled: true,
+                      },
+                      "/api/cockpit",
+                    );
+                    setNotice(r.notice);
+                  } catch (e: any) {
+                    setError(e.message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Enable daily routine for this version
+              </button>
+            )}
+            <button
+              className={button}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const r = await api(
+                    {
+                      operation: "schedule",
+                      definitionId: selected!.id,
+                      projectId: selected!.projectId,
+                      enabled: false,
+                    },
+                    "/api/cockpit",
+                  );
+                  setNotice(r.notice);
+                } catch (e: any) {
+                  setError(e.message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Disable daily routine
+            </button>
+          </div>
           {selected!.runs.map((run) => (
             <article key={run.id} className="space-y-3 rounded-lg border p-4">
               <h3 className="font-bold">
@@ -384,6 +464,37 @@ export const VisibleFlowsPanel: React.FC<{ projects: Project[] }> = ({
                     {m.name}: {m.actionConfig?.lastRun?.status || "Not started"}
                   </summary>
                   <p>{m.actionConfig?.lastRun?.error}</p>
+                  {m.actionConfig?.lastRun?.status === "pending" &&
+                    m.actionConfig.lastRun.output?.ask?.status === "open" &&
+                    run.status !== "cancelled" && (
+                      <form
+                        className="space-y-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const data = new FormData(e.currentTarget);
+                          void command("answer_update", {
+                            runId: run.id,
+                            nodeId: m.id,
+                            askId: m.actionConfig!.lastRun!.output.ask.id,
+                            note: String(data.get("note") || ""),
+                          });
+                        }}
+                      >
+                        <p>{m.actionConfig.lastRun.output.ask.prompt}</p>
+                        <label>
+                          Reviewed update
+                          <textarea
+                            className={field}
+                            name="note"
+                            required
+                            maxLength={4000}
+                          />
+                        </label>
+                        <button className={button} disabled={busy}>
+                          Save response to this Ask
+                        </button>
+                      </form>
+                    )}
                   {typeof m.actionConfig?.lastRun?.output?.report_content ===
                     "string" && (
                     <Markdown

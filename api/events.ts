@@ -53,8 +53,11 @@ export const POST = async (request: Request): Promise<Response> => {
       };
       const requestHash = createHash('sha256').update(rawBody).digest('hex');
       const existing = await readVoiceContextResponse(input.tenant_id, input.request_id, requestHash);
-      if (existing) return json(existing, 200);
       const response = await buildVoiceAgentContext(input);
+      // Replayed reads must re-evaluate current membership and source grants.
+      // The stored request still detects conflicting reuse; it is not authority
+      // to disclose an older response after access has been revoked.
+      if (existing) return json(response,200);
       const stored = await saveVoiceContextResponse(input.tenant_id, input.request_id, requestHash, response as unknown as Record<string, unknown>);
       return json(stored, 200);
     }

@@ -1,7 +1,8 @@
 import { handleMemoryContextRequest } from './lib/communications/memoryContext';
 import { handleMeetingRequest, MeetingRequestError } from './lib/communications/meetings';
-import { handleVisibleFlows } from './lib/visibleFlows/api';
+import { handleVisibleFlows, publicFlowResponse } from './lib/visibleFlows/api';
 import { FlowError } from './lib/visibleFlows/model';
+import { handleCockpit } from './lib/cockpit/api';
 import { handleCommitments } from './lib/commitments/api';
 import { CommitmentError } from './lib/commitments/model';
 import express from "express";
@@ -154,7 +155,11 @@ async function startServer() {
     catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof MeetingRequestError?error.status:503).json({error:error.message,details:error.details});}
   });
   app.all('/api/flows', async(req,res)=>{
-    try{return res.status(200).json(await handleVisibleFlows(req,await requireAppMember(req as any)));}
+    try{return res.status(200).json(publicFlowResponse(await handleVisibleFlows(req,await requireAppMember(req as any))));}
+    catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof FlowError?error.status:503).json({error:error.message});}
+  });
+  app.all('/api/cockpit', async(req,res)=>{
+    try{return res.status(200).json(publicFlowResponse(await handleCockpit(req,await requireAppMember(req as any))));}
     catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof FlowError?error.status:503).json({error:error.message});}
   });
   app.all('/api/commitments', async (req, res) => {
@@ -273,6 +278,7 @@ async function startServer() {
   app.patch('/api/integrations', async (req, res) => {
     try {
       const member = await requireAppMember(req as any);
+      await (await import('./lib/cockpit/profileAccess.js')).assertChannelProfileAccess(member, req.body?.agent || {});
       return res.status(200).json({ agent: await saveTenantAgentProfile(member.orgId, req.body?.agent || {}) });
     } catch (error: any) {
       return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
