@@ -27,6 +27,10 @@ describe('Vercel Hobby deployment configuration', () => {
     assert.equal(rewrites.get('/api/agent/voice-context'), '/api/events?action=voice_context');
     assert.equal(rewrites.get('/api/operations'), '/api/communications/status?action=operations');
     assert.equal(rewrites.get('/api/operations/agent-jobs/replay'), '/api/communications/status?action=operations_replay');
+    assert.equal(rewrites.get('/api/thread-register'), '/api/communications/status?action=thread_register');
+    assert.equal(rewrites.get('/api/thread-register/candidates'), '/api/communications/status?action=thread_candidates');
+    assert.equal(rewrites.get('/api/thread-register/correction'), '/api/communications/status?action=thread_correction');
+    assert.equal(rewrites.get('/api/thread-register/thread'), '/api/communications/status?action=thread_update');
     assert.equal(rewrites.get('/api/gemini/brainstormSubtasks'), '/api/gemini?action=brainstormSubtasks');
     assert.equal(rewrites.get('/api/gemini/generateProjectStructure'), '/api/gemini?action=generateProjectStructure');
   });

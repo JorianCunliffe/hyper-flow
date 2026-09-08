@@ -13,6 +13,7 @@ import { parseSignedJsonBody, verifyCommunicationsSignatureV2, verifyIncomingCom
 import { createCommunicationsClient } from "./lib/communications/client";
 import { accountEmailPolicy } from "./lib/communications/accountEmailPolicy";
 import { CommunicationsApiError } from "./lib/communications/errors";
+import { handleThreadRegisterRequest, threadRegisterErrorStatus } from './lib/communications/threadRegister';
 import {
   consumeOrganizationInvite,
   consumeOAuthStateNonce,
@@ -132,6 +133,22 @@ async function startServer() {
         .json({ error: error?.message || 'Request failed' });
     }
   });
+
+  for (const [route, action] of [
+    ['/api/thread-register', 'thread_register'],
+    ['/api/thread-register/candidates', 'thread_candidates'],
+    ['/api/thread-register/correction', 'thread_correction'],
+    ['/api/thread-register/thread', 'thread_update']
+  ]) {
+    app.all(route, async (req, res) => {
+      try {
+        const member = await requireAppMember(req as any);
+        return res.status(200).json(await handleThreadRegisterRequest(action, req, member));
+      } catch (error: any) {
+        return res.status(error instanceof ApiAuthError ? error.status : threadRegisterErrorStatus(error)).json({ error: error?.message || 'Thread register request failed' });
+      }
+    });
+  }
 
   app.get('/api/communications/status', async (req, res) => {
     try {

@@ -9,6 +9,12 @@ import type {
   CommunicationsMailboxRef,
   CommunicationsPersonRef,
   CommunicationThreadResult,
+  ThreadRegisterOptions,
+  ThreadRegisterEntry,
+  ThreadCandidate,
+  ThreadCorrectionRequest,
+  ThreadCorrectionResult,
+  ThreadRegisterPatch,
   ResolveAskResult,
   MailboxDraftRequest,
   SendEmailRequest,
@@ -148,6 +154,52 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     }) : [];
   }
 
+  async listThreadRegister(tenantId: string, options: ThreadRegisterOptions = {}): Promise<{ data: ThreadRegisterEntry[]; count: number; has_more?: boolean }> {
+    this.requireTenant(tenantId);
+    const query = new URLSearchParams();
+    if (options.status) query.set('status', options.status);
+    if (options.personId) query.set('person_id', options.personId);
+    if (options.externalProjectId) query.set('external_project_id', options.externalProjectId);
+    if (options.limit) query.set('limit', String(options.limit));
+    if (options.offset !== undefined) query.set('offset', String(options.offset));
+    if (options.threadId) query.set('thread_id', options.threadId);
+    if (options.communicationOffset !== undefined) query.set('communication_offset', String(options.communicationOffset));
+    const body = await this.rawRequest(`/v1/thread-register${query.size ? `?${query}` : ''}`, { method: 'GET', tenantId });
+    const data = Array.isArray(body?.data) ? body.data.map((item: ThreadRegisterEntry) => ({
+      ...item,
+      participants: Array.isArray(item.participants) ? item.participants : [],
+      communications: Array.isArray(item.communications) ? item.communications : [],
+      decisions: Array.isArray(item.decisions) ? item.decisions : [],
+      corrections: Array.isArray(item.corrections) ? item.corrections : []
+    })) : [];
+    return { data, count: typeof body?.count === 'number' ? body.count : data.length, has_more: body?.has_more === true };
+  }
+
+  async getThreadCandidates(tenantId: string, communicationId: string): Promise<{ communication_id: string; current_thread_id: string | null; candidates: ThreadCandidate[] }> {
+    this.requireTenant(tenantId);
+    if (!communicationId) throw new CommunicationsApiError('Communication id is required');
+    const body = await this.rawRequest(`/v1/communications/${encodeURIComponent(communicationId)}/thread-candidates`, { method: 'GET', tenantId });
+    return {
+      communication_id: body?.communication_id || communicationId,
+      current_thread_id: body?.current_thread_id || null,
+      candidates: Array.isArray(body?.candidates) ? body.candidates : []
+    };
+  }
+
+  async correctThread(tenantId: string, communicationId: string, request: ThreadCorrectionRequest): Promise<ThreadCorrectionResult> {
+    this.requireTenant(tenantId);
+    if (!communicationId) throw new CommunicationsApiError('Communication id is required');
+    return this.rawRequest(`/v1/communications/${encodeURIComponent(communicationId)}/rethread`, {
+      method: 'POST', tenantId, body: request
+    });
+  }
+
+  async updateThread(tenantId: string, threadId: string, patch: ThreadRegisterPatch): Promise<Record<string, unknown>> {
+    this.requireTenant(tenantId);
+    if (!threadId) throw new CommunicationsApiError('Thread id is required');
+    return this.rawRequest(`/v1/threads/${encodeURIComponent(threadId)}`, { method: 'PATCH', tenantId, body: patch });
+  }
+
   async setTriageDisposition(
     tenantId: string,
     itemId: string,
@@ -285,7 +337,7 @@ export class HttpCommunicationsClient implements CommunicationsClient {
 
   private async rawRequest(
     path: string,
-    options: { method: 'GET' | 'POST'; body?: unknown; idempotencyKey?: string; tenantId?: string }
+    options: { method: 'GET' | 'POST' | 'PATCH'; body?: unknown; idempotencyKey?: string; tenantId?: string }
   ): Promise<any> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
