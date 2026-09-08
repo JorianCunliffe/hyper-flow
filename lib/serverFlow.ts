@@ -6,6 +6,7 @@ import { findProject, upsertCoachingSession, writeProject } from './serverStore.
 import { deliverRaisedAsks } from './asks/deliverRaisedAsks.js';
 import { expireAsk } from './asks/expireAsk.js';
 import { coachingCallDisposition, coachingCallNode, coachingRetryMatchesProject, coachingRetryState } from './coachingRetry.js';
+import { settleVisibleCallback } from './visibleFlows/runtime.js';
 export { respondToAsk } from './asks/respondToAsk.js';
 
 /**
@@ -250,6 +251,7 @@ export const resolveCallbackAndAdvance = async (
   match: { nodeId?: string; runId?: string; externalId?: string },
   result: { status: 'success' | 'error'; output?: any; logs?: string[]; error?: string; resolvedBy: string }
 ): Promise<AdvanceOutcome> => {
+  if (match.runId?.startsWith('vf:')) return (await settleVisibleCallback(orgId,projectId,match,result))!;
   const located = await findProject(orgId, projectId);
   if (!located) return { ok: false, reason: 'project_not_found' };
 

@@ -28,3 +28,5 @@ jobs:
       - run: npm audit --omit=dev --audit-level=moderate
       - name: Firebase Rules isolation tests
         run: npm run test:rules
+      - name: Durable visible-flow transactions
+        run: npx firebase-tools emulators:exec --project demo-hyperflow --only database --config firebase.test.json "node --import tsx --test tests/integration/phase06.test.ts"
