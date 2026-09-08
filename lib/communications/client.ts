@@ -1,4 +1,5 @@
 import type { MemoryRequest, MemoryEnvelope } from './memoryTypes.js';
+import type { MeetingInput, MeetingRecord } from './meetingTypes.js';
 import { CommunicationsApiError, CommunicationsConfigurationError } from './errors.js';
 import { assertEmailSendAllowed } from './emailPolicy.js';
 import type {
@@ -55,6 +56,21 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     this.baseUrl = parsed.toString().replace(/\/$/, '');
     this.apiKey = apiKey;
     this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  async listMeetings(tenantId:string, offset=0): Promise<{data:MeetingRecord[];next:number|null}> {
+    this.requireTenant(tenantId); return this.rawRequest(`/v1/meetings?offset=${offset}`,{method:'GET',tenantId});
+  }
+  async getMeeting(tenantId:string,id:string):Promise<MeetingRecord> {
+    this.requireTenant(tenantId); return this.rawRequest(`/v1/meetings/${encodeURIComponent(id)}`,{method:'GET',tenantId});
+  }
+  async findMeeting(tenantId:string,source:string,externalId:string):Promise<MeetingRecord|null> {
+    this.requireTenant(tenantId);
+    try{return await this.rawRequest(`/v1/meetings/by-source?${new URLSearchParams({source,externalId})}`,{method:'GET',tenantId});}
+    catch(error){if(error instanceof CommunicationsApiError && error.status===404)return null;throw error;}
+  }
+  async importMeeting(tenantId:string,input:MeetingInput,actor:string):Promise<{id:string;version:number;duplicate:boolean}> {
+    this.requireTenant(tenantId);return this.rawRequest('/v1/meetings',{method:'POST',tenantId,body:{...input,initiator_id:actor}});
   }
 
   async getMemoryContext(tenantId: string, input: MemoryRequest): Promise<MemoryEnvelope> {

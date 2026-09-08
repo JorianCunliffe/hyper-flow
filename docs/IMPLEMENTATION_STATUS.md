@@ -2,7 +2,7 @@
 
 Last updated: 8 September 2026.
 
-**Current state:** Phases 01–03 and the subsequent communications repairs are merged and deployed. Phase 04 is implemented and locally verified on its review branch; its production rollout is pending. SMS and call receipt were confirmed by the user. The later transcription teardown repair has not had a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
+**Current state:** Phases 01–04 are merged and deployed. Phase 04's live acceptance found and fixed a cold-instance transaction issue; its controlled review lifecycle now passes in production. Phase 05 is in progress. SMS and call receipt were confirmed by the user; the earlier transcription teardown repair still needs a fresh live-call acceptance test. Historical baseline observations below remain dated snapshots.
 
 **Current scope:** two existing applications. Communications Service retains its existing memory, search and enrichment. No memory extraction or third memory application.
 
@@ -33,8 +33,8 @@ Last updated: 8 September 2026.
 | P01 | Ownership, authority and API/event contracts | Merged and deployed; later repair caveat above | P00 | [Record](implementation/P01.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/2); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/2) |
 | P02 | Canonical cross-channel threads and register | Merged and deployed; SMS/call receipt confirmed | P01 | [Record](implementation/P02.md); [HyperFlow PR](https://github.com/JorianCunliffe/hyper-flow5/pull/3); [Communications PR](https://github.com/JorianCunliffe/communications-service/pull/3) |
 | P03 | Safe use of existing Communications memory | Merged and deployed | P02 | [P03 record](implementation/P03.md); later baseline in [P04](implementation/P04.md) |
-| P04 | HyperFlow commitments and Ask lifecycle | Implemented; local acceptance passed; rollout pending | P03 | [P04 record](implementation/P04.md) |
-| P05 | Transcribed meeting ingestion and enrichment | Not started | P03, P04 | No phase record yet |
+| P04 | HyperFlow commitments and Ask lifecycle | Merged, deployed and controlled live lifecycle verified | P03 | [P04 record](implementation/P04.md); [release and correction](implementation/P04_RELEASE.md) |
+| P05 | Transcribed meeting ingestion and enrichment | In progress | P03, P04 | [P05 record](implementation/P05.md) |
 | P06 | Visible reusable flows from requests | Not started | P04; P05 for meeting inputs | No phase record yet |
 | P07 | CEO cockpit, follow-up and receptionist | Not started | P06, P02–P04; P05 for meeting briefs | No phase record yet |
 | P08 | Diary and calendar execution | Not started | P07, P01 | No phase record yet |
@@ -47,7 +47,7 @@ Replace “No phase record yet” with links to the actual per-app records when 
 
 ## Next goal
 
-Review and land Phase 04, deploy HyperFlow, then verify Obligations with a real organization member and controlled records. Communications remains at the compatible deployed contract; no Phase 04 release there is required. Preserve email policy and channel grants. Phase 05 has not started. The fresh live-call check for the earlier transcription repair remains distinct from Phase 04 acceptance; do not repeat provider calls as part of this phase.
+Continue Phase 05, then repeat implementation, verification and release through Phase 12 under the user's continuing authorization. Preserve the application boundaries and existing channel authority. Generic transcript upload is the initial source; selected calendar/social/CMS/provider details are pending user clarification. Missing provider authority must not be replaced with invented grants or reported as passed live acceptance.
 
 ## Decision log
 
