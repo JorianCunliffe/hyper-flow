@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import {
   isServerStoreConfigured,
+  findProject,
   requireOrganizationMember,
   verifyFirebaseIdToken,
   type AuthenticatedMember
@@ -13,6 +14,15 @@ export class ApiAuthError extends Error {
 }
 
 type RequestLike = { headers: Record<string, string | string[] | undefined> };
+
+export const requireProjectInTenant = async (
+  orgId: string,
+  projectId: unknown,
+  lookup: typeof findProject = findProject
+): Promise<void> => {
+  if (typeof projectId !== 'string' || !projectId.trim()) throw new ApiAuthError(400, 'projectId is required');
+  if (!await lookup(orgId, projectId)) throw new ApiAuthError(403, 'Project does not belong to this organization');
+};
 
 const firstHeader = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? String(value[0] || '') : String(value || '');

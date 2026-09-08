@@ -1,5 +1,7 @@
 # HyperFlow API reference
 
+Phase 01 authority: direct task execution requires an existing project in the authenticated organization. All outbound email paths require a backend `EMAIL_SEND_POLICY_BY_TENANT` grant of `allow_send`; otherwise they fail with policy denial rather than claiming delivery. Mailbox draft creation is unaffected. See [boundaries and authority](architecture/BOUNDARIES.md) and the [Phase 01 API fragment](../contracts/phase01.openapi.json). This is an additional ceiling over existing authentication and action policy.
+
 This reference describes the HTTP handlers under `api/`, their local Express equivalents, and the Communications Service requests emitted by the current HyperFlow client.
 
 ## Conventions

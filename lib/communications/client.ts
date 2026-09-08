@@ -1,4 +1,5 @@
 import { CommunicationsApiError, CommunicationsConfigurationError } from './errors.js';
+import { assertEmailSendAllowed } from './emailPolicy.js';
 import type {
   CommunicationResult,
   CommunicationListOptions,
@@ -57,7 +58,8 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     return this.communicationRequest('/v1/calls', { method: 'POST', body: request, idempotencyKey: this.operationKey('voice', request) });
   }
 
-  sendEmail(request: SendEmailRequest): Promise<CommunicationResult> {
+  async sendEmail(request: SendEmailRequest): Promise<CommunicationResult> {
+    assertEmailSendAllowed(request.correlation?.tenant_id);
     return this.communicationRequest('/v1/emails', {
       method: 'POST', body: request, idempotencyKey: this.operationKey('email', request)
     });

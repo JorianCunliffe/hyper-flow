@@ -78,7 +78,13 @@ describe('HttpCommunicationsClient current Communications Service contract', () 
     await assert.rejects(client.getCommunication('org_1', 'comm_1'), (error: any) => error instanceof CommunicationsApiError && error.status === 400);
   });
 
-  test('sends email with tenant isolation and a deterministic operation key', async () => {
+  test('sends email with tenant isolation and a deterministic operation key', async (t) => {
+    const priorPolicy = process.env.EMAIL_SEND_POLICY_BY_TENANT;
+    process.env.EMAIL_SEND_POLICY_BY_TENANT = JSON.stringify({ org_1: 'allow_send' });
+    t.after(() => {
+      if (priorPolicy === undefined) delete process.env.EMAIL_SEND_POLICY_BY_TENANT;
+      else process.env.EMAIL_SEND_POLICY_BY_TENANT = priorPolicy;
+    });
     const calls: any[] = [];
     const fetchImpl: typeof fetch = async (url: any, init?: any) => {
       calls.push({ url: String(url), init });
@@ -184,7 +190,13 @@ describe('HttpCommunicationsClient current Communications Service contract', () 
 });
 
 describe('executeTask communications routing', () => {
-  test('routes email through Communications with tenant identity, reply routing, and correlation', async () => {
+  test('routes email through Communications with tenant identity, reply routing, and correlation', async (t) => {
+    const priorPolicy = process.env.EMAIL_SEND_POLICY_BY_TENANT;
+    process.env.EMAIL_SEND_POLICY_BY_TENANT = JSON.stringify({ tenant_1: 'allow_send' });
+    t.after(() => {
+      if (priorPolicy === undefined) delete process.env.EMAIL_SEND_POLICY_BY_TENANT;
+      else process.env.EMAIL_SEND_POLICY_BY_TENANT = priorPolicy;
+    });
     const original = { url: process.env.COMMUNICATIONS_API_URL, key: process.env.COMMUNICATIONS_API_KEY, publicUrl: process.env.PUBLIC_BASE_URL, fetch: globalThis.fetch };
     let request: any;
     let headers: any;
