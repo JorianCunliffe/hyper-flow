@@ -6,6 +6,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/meetings", "destination": "/api/communications/status?action=meetings" },
+    { "source": "/api/flows", "destination": "/api/gemini?action=flows" },
     { "source": "/api/commitments", "destination": "/api/communications/status?action=commitments" },
     { "source": "/api/communications/memory", "destination": "/api/communications/status?action=memory" },
     { "source": "/api/communications/email-policy", "destination": "/api/communications/status?action=email_policy" },

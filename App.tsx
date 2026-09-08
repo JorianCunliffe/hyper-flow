@@ -72,6 +72,7 @@ import { ReportingView } from './components/ReportingView';
 import { TriageInbox } from './components/TriageInbox';
 import { CommitmentsPanel } from './components/CommitmentsPanel';
 import { MeetingsPanel } from './components/MeetingsPanel';
+import { VisibleFlowsPanel } from './components/VisibleFlowsPanel';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { CloudSetupModal } from './components/modals/CloudSetupModal';
 import { CreateProjectModal } from './components/modals/CreateProjectModal';
@@ -248,6 +249,7 @@ export const App: React.FC = () => {
   const [isTriageMode, setIsTriageMode] = useState(initialView === 'activity');
   const [isObligationsMode, setIsObligationsMode] = useState(initialView === 'obligations');
   const [isMeetingsMode, setIsMeetingsMode] = useState(initialView === 'meetings');
+  const [isFlowsMode, setIsFlowsMode] = useState(initialView === 'flows');
   const [kanbanGrouping, setKanbanGrouping] = useState<'project' | 'member'>('project');
 
   const [scratchTasks, setScratchTasks] = useState<ScratchTask[]>([]);
@@ -259,7 +261,7 @@ export const App: React.FC = () => {
   const [kanbanFilterToday, setKanbanFilterToday] = useState<boolean>(false);
   const [kanbanFilterLate, setKanbanFilterLate] = useState<boolean>(false);
 
-  const activeView: AppView = isMeetingsMode ? 'meetings' : isObligationsMode ? 'obligations' : isTriageMode ? 'activity' : isReportingMode ? 'reports' : isApprovalsMode ? 'approvals' : isFeedMode ? 'feed' : isScratchMode ? 'scratch' : isKanbanMode ? 'kanban' : 'projects';
+  const activeView: AppView = isFlowsMode ? 'flows' : isMeetingsMode ? 'meetings' : isObligationsMode ? 'obligations' : isTriageMode ? 'activity' : isReportingMode ? 'reports' : isApprovalsMode ? 'approvals' : isFeedMode ? 'feed' : isScratchMode ? 'scratch' : isKanbanMode ? 'kanban' : 'projects';
   const openView = useCallback((view: AppView) => {
     setIsKanbanMode(view === 'kanban');
     setIsScratchMode(view === 'scratch');
@@ -269,6 +271,7 @@ export const App: React.FC = () => {
     setIsTriageMode(view === 'activity');
     setIsObligationsMode(view === 'obligations');
     setIsMeetingsMode(view === 'meetings');
+    setIsFlowsMode(view === 'flows');
     const url = new URL(window.location.href);
     if (view === 'projects') url.searchParams.delete('view');
     else url.searchParams.set('view', view);
@@ -2118,6 +2121,7 @@ export const App: React.FC = () => {
            <button type="button" onClick={() => openView('approvals')} aria-pressed={activeView === 'approvals'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'approvals' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><CheckCircle size={14} /> Approvals{allOpenAsks.length > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-800">{allOpenAsks.length}</span>}</button>
            <button type="button" onClick={() => openView('obligations')} aria-pressed={activeView === 'obligations'} className="rounded-lg px-3 py-2 text-xs font-bold">Obligations</button>
            <button type="button" onClick={() => openView('meetings')} aria-pressed={activeView === 'meetings'} className="rounded-lg px-3 py-2 text-xs font-bold">Meetings</button>
+           <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg px-3 py-2 text-xs font-bold">Flows</button>
            <button type="button" onClick={() => openView('activity')} aria-pressed={activeView === 'activity'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'activity' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Inbox size={14} /> Activity</button>
            <button type="button" onClick={() => openView('scratch')} aria-pressed={activeView === 'scratch'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'scratch' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Edit2 size={14} /> Scratch</button>
            <button type="button" onClick={() => openView('feed')} aria-pressed={activeView === 'feed'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'feed' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Activity size={14} /> Feed</button>
@@ -2308,6 +2312,7 @@ export const App: React.FC = () => {
 
         <button type="button" onClick={() => openView('obligations')} aria-pressed={activeView === 'obligations'} className="rounded-lg border px-3 py-2 text-sm font-bold">Obligations</button>
         <button type="button" onClick={() => openView('meetings')} aria-pressed={activeView === 'meetings'} className="rounded-lg border px-3 py-2 text-sm font-bold">Meetings</button>
+        <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg border px-3 py-2 text-sm font-bold">Flows</button>
         {/* Header Actions */}
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Settings">
@@ -2429,7 +2434,9 @@ export const App: React.FC = () => {
         )}
 
         {/* MAIN VIEW CONTENT */}
-        {isMeetingsMode ? (
+        {isFlowsMode ? (
+          <VisibleFlowsPanel key={currentOrgId || 'none'} projects={projects} />
+        ) : isMeetingsMode ? (
           <MeetingsPanel key={currentOrgId || 'none'} orgId={currentOrgId || ''} projects={projects} onOpenObligations={()=>openView('obligations')} />
         ) : isObligationsMode ? (
           <CommitmentsPanel key={currentOrgId || 'none'} orgId={currentOrgId || ''} projects={projects} />

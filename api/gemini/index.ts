@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 import { ApiAuthError, requireAppMember } from '../../lib/apiAuth.js';
+import { handleVisibleFlows } from '../../lib/visibleFlows/api.js';
+import { FlowError } from '../../lib/visibleFlows/model.js';
 
 const brainstormSubtasks = async (req: VercelRequest, res: VercelResponse) => {
   const { milestoneName, projectContext } = req.body || {};
@@ -67,15 +69,16 @@ const generateProjectStructure = async (req: VercelRequest, res: VercelResponse)
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    await requireAppMember(req);
+    const member = await requireAppMember(req);
     const action = typeof req.query.action === 'string' ? req.query.action : '';
+    if (action === 'flows') return res.status(200).json(await handleVisibleFlows(req,member));
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     if (action === 'brainstormSubtasks') return await brainstormSubtasks(req, res);
     if (action === 'generateProjectStructure') return await generateProjectStructure(req, res);
     return res.status(404).json({ error: 'Unknown Gemini operation' });
   } catch (error: any) {
     console.error(error);
-    return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
+    return res.status(error instanceof ApiAuthError || error instanceof FlowError ? error.status : 500).json({ error: error?.message || String(error) });
   }
 }

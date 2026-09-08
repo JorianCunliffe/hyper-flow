@@ -34,6 +34,7 @@ import {
 import { normalizeNodeAsks } from './humanAsk.js';
 import { upgradeLegacyEmailTriageProject } from './projectTemplates.js';
 import type { ExternalEventProcessingStatus, ExternalEventRecord } from './externalEvents.js';
+import { normalizeFlow, type FlowRecord } from './visibleFlows/model.js';
 
 /**
  * Server-side persistence via the Firebase Admin SDK.
@@ -45,6 +46,29 @@ import type { ExternalEventProcessingStatus, ExternalEventRecord } from './exter
 const APP_NAME = 'hyperflow-server';
 
 export class ServerStoreUnavailable extends Error {}
+
+export async function readVisibleFlow(orgId: string, id: string): Promise<FlowRecord | null> {
+  const snap = await getDb().ref(`visible_flows/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).get();
+  return snap.exists() ? normalizeFlow(snap.val()) : null;
+}
+export async function listVisibleFlows(orgId: string): Promise<FlowRecord[]> {
+  const snap = await getDb().ref(`visible_flows/${safeRtdbKey(orgId)}`).orderByKey().limitToLast(100).get();
+  return Object.values(snap.val() || {}).map(v=>normalizeFlow(v as FlowRecord));
+}
+export async function transactVisibleFlow(orgId: string, id: string, update: (current: FlowRecord|null)=>FlowRecord): Promise<FlowRecord> {
+  const ref = getDb().ref(`visible_flows/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`);
+  let listener = () => {};
+  try {
+    await new Promise<void>((resolve,reject)=>{ listener=()=>resolve(); ref.on('value',listener,reject); });
+    const result = await ref.transaction(current=>{
+      const serialized=JSON.stringify(update(current ? normalizeFlow(current) : null));
+      if(Buffer.byteLength(serialized,'utf8')>4_000_000)throw new Error('Flow history reached its 4 MB limit; export it and create a separate template');
+      return JSON.parse(serialized);
+    },undefined,false);
+    if (!result.committed) throw new Error('Flow transaction was not committed');
+    return normalizeFlow(result.snapshot.val());
+  } finally { ref.off('value',listener); }
+}
 
 export class ServiceAccountError extends Error {}
 
