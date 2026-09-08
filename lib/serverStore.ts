@@ -48,6 +48,22 @@ const APP_NAME = 'hyperflow-server';
 
 export class ServerStoreUnavailable extends Error {}
 
+export async function readCalendarLedger(orgId:string,id:string):Promise<import('./calendar/model.js').CalendarLedger|null>{
+  const snapshot=await getDb().ref(`calendar_ledgers/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`).get();
+  return snapshot.exists()?{...snapshot.val(),policies:snapshot.val().policies||{},proposals:snapshot.val().proposals||{}}:null;
+}
+export async function listCalendarLedgers(orgId:string):Promise<import('./calendar/model.js').CalendarLedger[]>{
+  const snapshot=await getDb().ref(`calendar_ledgers/${safeRtdbKey(orgId)}`).limitToFirst(100).get();
+  return Object.values(snapshot.val()||{}).map((row:any)=>({...row,policies:row.policies||{},proposals:row.proposals||{}}));
+}
+export async function transactCalendarLedger(orgId:string,id:string,update:(current:import('./calendar/model.js').CalendarLedger|null)=>import('./calendar/model.js').CalendarLedger):Promise<import('./calendar/model.js').CalendarLedger>{
+  const reference=getDb().ref(`calendar_ledgers/${safeRtdbKey(orgId)}/${safeRtdbKey(id)}`);let listener=()=>{};
+  try{await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});
+    const result=await reference.transaction(current=>{const value=update(current?{...current,policies:current.policies||{},proposals:current.proposals||{}}:null);const serialized=JSON.stringify(value);if(Buffer.byteLength(serialized)>4000000)throw new Error('Calendar history reached its 4 MB limit; export it before continuing');return JSON.parse(serialized);},undefined,false);
+    if(!result.committed)throw new Error('Calendar update was not saved');return result.snapshot.val();
+  }finally{reference.off('value',listener);}
+}
+
 export async function claimContactDispatch(orgId:string,input:{operationId:string;target:string;channel:string;coalesce:boolean},now=Date.now()) {
   const profile=await readTenantAgentProfile(orgId);if(!profile)throw new Error('Tenant contact policy is unavailable');
   const policy=normalizeContactWindow(profile.contactWindow);
