@@ -211,6 +211,18 @@ describe('recordAskResponse', () => {
     }));
     assert.equal(ask.status, 'answered');
   });
+  test('required file fields use actual field-bound attachments and accumulate across replies',()=>{
+    const base:HumanAsk={...createQuestionAsk(openMilestone('N'),[]),kind:'upload',fields:[{name:'contract',type:'file',required:true},{name:'budget',type:'file',required:true},{name:'reference',type:'string',required:true}]};
+    assert.equal(recordAskResponse(base,reply({values:{contract:'pretend.pdf',budget:'pretend.xlsx',reference:'ref'}})).status,'open');
+    const attachment={id:'f1',url:'https://x/fixture',kind:'document' as const,source:'web' as const,capturedAt:1};
+    let ask=recordAskResponse(base,reply({values:{reference:'ref'},attachments:[{...attachment,field:'contract'}]}));assert.equal(ask.status,'open');
+    ask=recordAskResponse(ask,reply({id:'r2',attachments:[{...attachment,id:'f2',field:'budget'}]}));assert.equal(ask.status,'answered');
+    assert.equal(recordAskResponse(base,reply({values:{reference:'ref'},attachments:[attachment]})).status,'open');
+    const one={...base,fields:[{name:'contract',type:'file' as const,required:true}]};
+    assert.equal(recordAskResponse(one,reply({attachments:[attachment]})).status,'answered');
+    assert.equal(recordAskResponse(one,reply({attachments:[{...attachment,field:'wrong'}]})).status,'open');
+    assert.equal(recordAskResponse(one,reply({attachments:[attachment],needsInterpretation:true})).status,'open');
+  });
 });
 
 describe('createQuestionAsk', () => {
