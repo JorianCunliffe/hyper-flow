@@ -32,11 +32,11 @@ Human administrator POST `/api/tenant?view=lifecycle` with `operation=erase_mana
 
 Automatic file retention is not enabled. No retention period or backup destruction has been inferred from the implementation request.
 
-## Activation runbook — not yet authorized or performed
+## Activation runbook
 
-Production inspection found Firebase Storage unprovisioned on the Spark plan for project `hyper-flow-a459b`. Provisioning the default bucket requires a paid-plan decision. Do not upgrade billing or enable `HYPERFLOW_MANAGED_FILES` without the user's approval. The prepared code and configuration can be reviewed and tested while disabled.
+The user approved Blaze billing and Sydney storage on 9 September 2026. Project `hyper-flow-a459b` now uses Blaze through the sole available billing account, `My Billing Account 2`. Managed storage is enabled in production. For any other project, obtain its billing and location authorization before provisioning.
 
-1. Obtain approval for the Firebase billing-plan change and identify its billing account. Review current database usage as the project-wide billing change affects more than Storage. Agree a storage location before creating an immutable bucket location; Australia is a candidate, not an already-selected deployment region.
+1. Obtain approval for the Firebase billing-plan change and identify its billing account. Review current database usage as the project-wide billing change affects more than Storage. Agree a storage location before creating an immutable bucket location. This project's selected and verified region is `australia-southeast1` (Sydney).
 2. Create the intended private bucket. Require uniform bucket-level access and public-access prevention. Grant the existing HyperFlow server service account only the needed bucket object access. Inventory any pre-existing objects and provider soft-delete/version/retention settings; do not assume those copies are erased by API deletion.
 3. Deploy `storage.rules` with the separate `firebase.storage.json` configuration. It denies browser SDK reads/writes. Read back the deployed rules and verify anonymous and Firebase-user direct object access are denied. These rules do not replace bucket IAM.
 4. Set server-only `FIREBASE_STORAGE_BUCKET` to the verified bucket and `HYPERFLOW_MANAGED_FILES=true`; keep `FIREBASE_ENFORCE_TENANT_LIFECYCLE=true`. Redeploy HyperFlow. Do not put these credentials or any upload URI in client configuration or logs.
@@ -44,3 +44,15 @@ Production inspection found Firebase Storage unprovisioned on the Spark plan for
 6. Rollback must preserve normal database guards and all upload receipts. Do not re-enable legacy direct browser Storage writes. If uploads are pending, reconcile or cancel them before disabling the managed-file controller; otherwise the account correctly remains unable to suspend.
 
 Protocol references: [Google resumable uploads](https://docs.cloud.google.com/storage/docs/performing-resumable-uploads) and [checksum validation](https://docs.cloud.google.com/storage/docs/data-validation). Local provider simulations validate application recovery logic; they do not prove live bucket IAM, signing or provider behavior.
+
+## Live activation evidence — 9 September 2026
+
+- Bucket: `hyper-flow-a459b.firebasestorage.app`, Sydney, uniform bucket-level access, public-access prevention enforced. Initially empty. Existing Firebase server account inherits Storage Admin; no additional IAM grant was added. Narrowing that pre-existing project-wide role remains a separate review.
+- Deny-all browser rules deployed and read back in Firebase Console. Direct anonymous and authenticated reads/writes were denied; an authenticated author also could not read the server-only upload manifest from Realtime Database.
+- Soft delete retains deleted objects for seven days. Object versioning is off, no bucket retention policy is set, and object retention/event-based holds are disabled. Live deletion does not erase the soft-deleted copy.
+- Storage release `e28c41190135869cbf2e541afbd2a5e63a185eae`, production deployment `dpl_4PwapXyXoLU7pAVJwbGCFU2X5cRP`, followed fixes in PR21 and PR22. Real GCS 308 progress responses use manual redirect handling. A finalized cancellation response is validated before generation-conditional deletion.
+- In isolated tenant `org_4f5a8f3f123b4b0fb4ee4418c589dd7c`, a 2,097,289-byte file completed in three chunks. A stopped client resumed from the accepted first chunk. Download SHA-256 matched the original. Another member and tenant `org_7b7b188f748444f182c52fca941925d0` received 404 for the private file.
+- Completed-file deletion succeeded; the previously issued, still-valid signed URL returned 404. A partially uploaded object was cancelled and cancellation replayed successfully. All upload/deletion leases were released. Test manifests, memberships and identities remain as evidence; no CEO data was deleted or suspended.
+- The authenticated CEO file manager loaded at `/?files=1` with private visibility selected. Production upload/download checks exercised REST; browser interruption behavior was separately exercised in the UI fixture.
+
+This verifies core managed-file storage. Deployed Ask attachment submission, bulk lifecycle cleanup with a separate Communications test tenant, and a provider restore exercise remain distinct acceptance cases.

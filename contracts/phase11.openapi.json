@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HyperFlow tenant controls and workspace API",
-    "version": "2026-09-09.3",
+    "version": "2026-09-09.4",
     "description": "Phase 11 tenant-operation supplement. Existing business operations remain documented in the application API reference and phase contracts. This is not yet the final whole-product parity inventory."
   },
   "paths": {
@@ -1486,6 +1486,53 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/operations": {
+      "get": {
+        "operationId": "readHyperFlowOperationalDiagnostics",
+        "description": "With view=diagnostics, requires owner/admin and operations:read for API credentials. Writes an access audit before reading up to 100 records per dataset. Returns aggregate statuses only; no private content, credentials or provider error bodies. Unavailable and partial data remain explicit. This is not proof of delivery or a cost/SLA claim. Other views retain the existing operations API.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "const": "diagnostics"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "routine_check",
+                "support_review",
+                "incident_review"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audited bounded observation with auditId, observedAt, organizationId, datasets, scheduler, lifecycle, communications and usage"
+          },
+          "403": {
+            "description": "Administrator membership or operations scope required"
+          },
+          "422": {
+            "description": "Review reason required"
+          },
+          "503": {
+            "description": "Access audit unavailable; no diagnostic records read"
           }
         }
       }
