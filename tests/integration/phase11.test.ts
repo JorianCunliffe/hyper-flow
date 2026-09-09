@@ -262,7 +262,12 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
     }
     const {lifecycleOwner,changeDatabaseLifecycle,exportLifecycleChunk,readLifecycle}=await import('../../lib/tenantLifecycle/store');
     assert.equal((await lifecycleOwner('other_ceo')).orgId,'org_other');
-    await assert.rejects(lifecycleOwner(member.uid,'org_other'),/owner/);
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'organizations/org_other/members/other_ceo/role'),'admin'));
+    assert.equal((await lifecycleOwner('other_ceo')).role,'admin');
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'organizations/org_other/members/other_ceo/role'),'member'));
+    await assert.rejects(lifecycleOwner('other_ceo'),/administrator/);
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'organizations/org_other/members/other_ceo/role'),'owner'));
+    await assert.rejects(lifecycleOwner(member.uid,'org_other'),/administrator/);
     const receipt={owner:'communications-service' as const,status:'suspended',revision:2};
     await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'external_action_receipts/org_other/held'),{status:'uncertain'}));
     let lifecycle=await changeDatabaseLifecycle('org_other','other_ceo',{operation:'suspend',revision:0,requestId:'suspend_blocked',communicationsReceipt:receipt});

@@ -9,7 +9,7 @@
     "/api/tenant": {
       "get": {
         "operationId": "readHyperFlowTenantControls",
-        "description": "Administrator view. Hashes and plaintext credentials are omitted. API-client counts cover admitted scoped requests, excluding Firebase browser sessions and provider charges. With view=lifecycle, requires a current human owner and returns HyperFlow-owned lifecycle receipts. service=communications reads the separate service. dataset/revision/offset exports 512000-byte base64 chunks at a suspended revision, with whole-dataset and chunk SHA-256 hashes. Credentials and file contents are excluded.",
+        "description": "Administrator view. Hashes and plaintext credentials are omitted. API-client counts cover admitted scoped requests, excluding Firebase browser sessions and provider charges. With view=lifecycle, requires a current human owner or administrator and returns HyperFlow-owned lifecycle receipts. service=communications reads the separate service. dataset/revision/offset exports 512000-byte base64 chunks at a suspended revision, with whole-dataset and chunk SHA-256 hashes. Credentials and file contents are excluded.",
         "security": [
           {
             "Bearer": []
@@ -132,7 +132,7 @@
       },
       "post": {
         "operationId": "changeHyperFlowTenantControls",
-        "description": " With view=lifecycle, current human owners may request suspend/resume using requestId and revision. service=communications forwards the command with a human audit journal and returns the Communications-owned receipt. Without service, it changes only HyperFlow database state and requires enabled runtime guards; suspend requires an independently fetched Communications suspension receipt. No file/provider cleanup or HyperFlow erasure is implied.",
+        "description": " With view=lifecycle, current human owners or administrators may request suspend/resume using requestId and revision. service=communications forwards the command with a human audit journal and returns the Communications-owned receipt. Without service, it changes only HyperFlow database state and requires enabled runtime guards; suspend requires an independently fetched Communications suspension receipt. No file/provider cleanup or HyperFlow erasure is implied.",
         "security": [
           {
             "Bearer": []

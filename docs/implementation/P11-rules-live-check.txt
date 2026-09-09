@@ -1,0 +1,30 @@
+
+> hyperflow@0.0.0 check:live
+> node tests/e2e/live-rules-check.mjs
+
+
+Checking https://hyper-flow-a459b-default-rtdb.asia-southeast1.firebasedatabase.app
+
+
+[1mAnonymous access must be refused[0m
+  [32m✓[0m the database root is not world-readable
+  [32m✓[0m invites cannot be listed (was the org-takeover path)
+  [32m✓[0m project data is not world-readable
+  [32m✓[0m user records are not world-readable
+  [32m✓[0m organisations are not world-readable
+  [32m✓[0m the legacy accounts tree is closed
+  [32m✓[0m external event inbox is server-only
+  [32m✓[0m triage inbox is server-only
+  [32m✓[0m tenant schedules are server-only
+  [32m✓[0m schedule runs are server-only
+  [32m✓[0m communication cursors are server-only
+  [32m✓[0m Ask resolution claims are server-only
+  [32m✓[0m communication delivery state is server-only
+  [32m✓[0m server activity log is server-only
+
+[1mAnonymous writes must be refused[0m
+  [32m✓[0m an anonymous client cannot mint an invite
+
+[2m(skipping admin checks — set FIREBASE_SERVICE_ACCOUNT to include them)[0m
+
+[1m15 passed, 0 failed[0m
