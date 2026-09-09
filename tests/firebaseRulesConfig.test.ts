@@ -27,20 +27,16 @@ describe('Firebase production rules configuration', () => {
   });
 
   test('keeps agent profiles and integration references backend-only', () => {
-    assert.deepEqual(rules.agent_profiles, { '.read': false, '.write': false });
-    assert.deepEqual(rules.integration_connections, { '.read': false, '.write': false });
-    assert.deepEqual(rules.integration_credentials, { '.read': false, '.write': false });
-    assert.deepEqual(rules.oauth_states, { '.read': false, '.write': false });
-    assert.deepEqual(rules.workspace_grants, { '.read': false, '.write': false });
-    assert.deepEqual(rules.external_action_receipts, { '.read': false, '.write': false });
-    assert.deepEqual(rules.coaching_sessions, { '.read': false, '.write': false });
-    assert.equal(rules.agent_inbox_jobs['.read'], false);
-    assert.equal(rules.agent_inbox_jobs['.write'], false);
-    assert.equal(rules.agent_inbox_pending['.indexOn'], 'availableAt');
-    assert.equal(rules.agent_inbox_pending['.read'], false);
-    assert.deepEqual(rules.conversation_contexts, { '.read': false, '.write': false });
-    assert.deepEqual(rules.agent_voice_context_requests, { '.read': false, '.write': false });
-    assert.equal(rules.coaching_retry_pending['.indexOn'], 'availableAt');
-    assert.equal(rules.coaching_retry_pending['.read'], false);
+    for(const root of ['agent_profiles','integration_connections','integration_credentials','oauth_states','workspace_grants','external_action_receipts','coaching_sessions','conversation_contexts','agent_voice_context_requests']){
+      assert.equal(rules[root]['.read'],false);assert.equal(rules[root]['.write'],false);
+      assert.match(rules[root].$orgId['.read'],/auth.token.hyperflow_runtime === true/);
+      assert.match(rules[root].$orgId['.write'],/tenant_lifecycle/);
+    }
+    assert.equal(rules.agent_inbox_jobs['.read'],false);
+    assert.equal(rules.agent_inbox_jobs['.write'],false);
+    for(const root of ['agent_inbox_pending','coaching_retry_pending']){
+      assert.equal(rules[root]['.indexOn'],'availableAt');
+      assert.match(rules[root]['.read'],/auth.token.hyperflow_runtime === true/);
+    }
   });
 });

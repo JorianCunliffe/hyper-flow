@@ -1,3 +1,5 @@
+import { handleLifecycle } from './lib/tenantLifecycle/api';
+import { LifecycleError } from './lib/tenantLifecycle/model';
 import { handleMemoryContextRequest } from './lib/communications/memoryContext';
 import { handleMeetingRequest, MeetingRequestError } from './lib/communications/meetings';
 import { handleVisibleFlows, publicFlowResponse } from './lib/visibleFlows/api';
@@ -171,8 +173,8 @@ async function startServer() {
     try{return res.status(200).json(publicFlowResponse(await handleCockpit(req,await requireAppMember(req as any))));}
     catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof FlowError?error.status:503).json({error:error.message});}
   });
-  app.all('/api/tenant',async(req,res)=>{try{return res.status(200).json(await handleTenantControl(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
-  app.all('/api/workspace',async(req,res)=>{try{return res.status(200).json(await handleWorkspace(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
+  app.all('/api/tenant',async(req,res)=>{try{return res.status(200).json(req.query.view==='lifecycle'?await handleLifecycle(req as any):await handleTenantControl(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof LifecycleError||error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
+  app.all('/api/workspace',async(req,res)=>{try{return res.status(200).json(await handleWorkspace(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof LifecycleError||error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
   app.all('/api/publishing',async(req,res)=>{try{return res.status(200).json(await publishingRequest(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof PublishingError?error.status:500).json({error:error.message});}});
   app.all('/api/artifacts', async(req,res)=>{
     try{return res.status(200).json(await handleArtifacts(req,await requireAppMember(req as any)));}

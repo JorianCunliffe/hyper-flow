@@ -1,0 +1,20 @@
+i  emulators: Starting emulators: database
+i  emulators: Detected demo project ID "demo-hyperflow", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  database: Database Emulator logging to database-debug.log
+i  Running script: node --import tsx --test tests/integration/phase06.test.ts
+[2026-09-09T01:36:01.553Z]  @firebase/database: FIREBASE WARNING: set at /visible_flows/phase06_fixture/b8fba838-6a69-42a3-b51d-42ea7ae18889 failed: permission_denied
+✔ Phase 06 actual Firebase cold transactions, claim concurrency and direct-client isolation (1902.1562ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2520.0813
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  database: Stopping Database Emulator
+!  Database Emulator has exited upon receiving signal: SIGINT
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

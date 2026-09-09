@@ -12,6 +12,7 @@ const data: any = {
 };
 let lost = true;
 firebaseService.authorizedFetch = async (_input, options = {}) => {
+  if(String(_input).includes('view=lifecycle'))return Response.json({owner:'hyperflow',databaseGuardsEnabled:false,lifecycle:{state:'active',revision:0,receipts:{}},datasets:['projects']});
   const b = options.body ? JSON.parse(String(options.body)) : null;
   if (!b) return Response.json(data);
   if (b.operation === "create_client") {

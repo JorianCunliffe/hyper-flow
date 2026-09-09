@@ -5,6 +5,7 @@ import {
   readTenantWorkspace,
   replaceTenantWorkspace,
 } from "../serverStore.js";
+import { workspaceView } from "./workspace.js";
 import { TenantControlError } from "./model.js";
 import { handleClientControl, type ControlMember } from "./clients.js";
 export const controlStore = {
@@ -19,12 +20,12 @@ export async function handleWorkspace(
   if (request.method === "GET")
     return {
       owner: "hyperflow",
-      data: await readTenantWorkspace(member.orgId),
+      data: workspaceView(await readTenantWorkspace(member.orgId)),
     };
   if (request.method === "PUT")
     return {
       owner: "hyperflow",
-      data: await replaceTenantWorkspace(member.orgId, request.body),
+      data: workspaceView(await replaceTenantWorkspace(member.orgId, request.body)),
     };
   throw new TenantControlError(405, "Method not allowed");
 }

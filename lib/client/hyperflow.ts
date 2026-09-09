@@ -18,6 +18,9 @@ export class HyperFlowClient {
   }
   workspace(){return this.request('GET','/api/workspace');}
   replaceWorkspace(expectedRevision:number,data:unknown){return this.request('PUT','/api/workspace',{body:{expectedRevision,data}});}
+  lifecycle(service?:'communications'){return this.request('GET','/api/tenant',{query:{view:'lifecycle',...(service?{service}:{})}});}
+  lifecycleOperation(body:unknown){return this.request('POST','/api/tenant',{query:{view:'lifecycle'},body});}
+  exportChunk(dataset:string,revision:number,offset=0){return this.request('GET','/api/tenant',{query:{view:'lifecycle',dataset,revision,offset}});}
   tenant(){return this.request('GET','/api/tenant');}
   tenantOperation(body:unknown){return this.request('POST','/api/tenant',{body});}
   flowPage(after='',limit=50){return this.request('GET','/api/flows',{query:{shape:'summary',after,limit}});}

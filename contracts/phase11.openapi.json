@@ -2,14 +2,14 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HyperFlow tenant controls and workspace API",
-    "version": "2026-09-09.1",
+    "version": "2026-09-09.2",
     "description": "Phase 11 tenant-operation supplement. Existing business operations remain documented in the application API reference and phase contracts. This is not yet the final whole-product parity inventory."
   },
   "paths": {
     "/api/tenant": {
       "get": {
         "operationId": "readHyperFlowTenantControls",
-        "description": "Administrator view. Hashes and plaintext credentials are omitted. API-client counts cover admitted scoped requests, excluding Firebase browser sessions and provider charges.",
+        "description": "Administrator view. Hashes and plaintext credentials are omitted. API-client counts cover admitted scoped requests, excluding Firebase browser sessions and provider charges. With view=lifecycle, requires a current human owner and returns HyperFlow-owned lifecycle receipts. service=communications reads the separate service. dataset/revision/offset exports 512000-byte base64 chunks at a suspended revision, with whole-dataset and chunk SHA-256 hashes. Credentials and file contents are excluded.",
         "security": [
           {
             "Bearer": []
@@ -86,11 +86,53 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "name": "service",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "name": "dataset",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": false
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "required": false
+          }
+        ]
       },
       "post": {
         "operationId": "changeHyperFlowTenantControls",
-        "description": "",
+        "description": " With view=lifecycle, current human owners may request suspend/resume using requestId and revision. service=communications forwards the command with a human audit journal and returns the Communications-owned receipt. Without service, it changes only HyperFlow database state and requires enabled runtime guards; suspend requires an independently fetched Communications suspension receipt. No file/provider cleanup or HyperFlow erasure is implied.",
         "security": [
           {
             "Bearer": []
@@ -224,7 +266,20 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "lifecycle"
+              ]
+            },
+            "required": false
+          }
+        ]
       }
     },
     "/api/workspace": {

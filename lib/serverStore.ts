@@ -268,27 +268,31 @@ export const serverStoreStatus = (): { ok: boolean; reason?: string } => {
 
 export const isServerStoreConfigured = (): boolean => serverStoreStatus().ok;
 
-const getServerApp = () => {
+const getServerApp = (lifecycleAdministrator = false) => {
   if (!isServerStoreConfigured()) {
     throw new ServerStoreUnavailable(
       'Server-side persistence is not configured. Set FIREBASE_SERVICE_ACCOUNT.'
     );
   }
-  const existing = getApps().find(a => a.name === APP_NAME);
+  const appName = lifecycleAdministrator ? `${APP_NAME}-lifecycle` : APP_NAME;
+  const existing = getApps().find(a => a.name === appName);
   const app =
     existing ||
     initializeApp(
       {
         credential: cert(parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT!)),
         databaseURL: getDatabaseUrl(),
+        ...(!lifecycleAdministrator && process.env.FIREBASE_ENFORCE_TENANT_LIFECYCLE === 'true' ? { databaseAuthVariableOverride: { uid: 'hyperflow-runtime-v1', token: { hyperflow_runtime: true } } } : {}),
         ...(process.env.FIREBASE_STORAGE_BUCKET ? { storageBucket: process.env.FIREBASE_STORAGE_BUCKET } : {})
       },
-      APP_NAME
+      appName
     );
   return app;
 };
 
 const getDb = () => getDatabase(getServerApp());
+/** Reserved for the human-owner lifecycle controller; ordinary stores use getDb. */
+export const getLifecycleDatabase = () => getDatabase(getServerApp(true));
 
 /** Server-only operational state; no client rule grants access to this root. */
 export async function listOperationalCommitments(orgId: string, after = '', limit = 50) {
