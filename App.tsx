@@ -1,3 +1,4 @@
+import { GlassNavigation } from './components/GlassNavigation';
 import { TenantLifecyclePanel } from './components/TenantLifecyclePanel';
 import { ManagedFilesPanel } from './components/ManagedFilesPanel';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -2136,35 +2137,46 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* MOBILE HEADER - Only visible on small screens */}
-      <div className="md:hidden bg-white border-b border-slate-200 flex flex-col sticky top-0 z-50 shadow-sm shrink-0">
-         <div className="flex items-center justify-between p-3 border-b border-slate-100">
-            <h1 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
-                <Layers size={18} />
-              </div>
-              HyperFlow
-            </h1>
-            <button type="button" onClick={() => setIsSettingsOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600" aria-label="Open settings"><Settings size={19} /></button>
-         </div>
-         <nav className="flex gap-1 overflow-x-auto border-b border-slate-100 bg-slate-50/70 p-2" aria-label="App views">
-           <button type="button" onClick={() => openView('projects')} aria-pressed={activeView === 'projects'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'projects' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Layout size={14} /> Projects</button>
-           <button type="button" onClick={() => openView('kanban')} aria-pressed={activeView === 'kanban'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'kanban' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Columns size={14} /> Kanban</button>
-           <button type="button" onClick={() => openView('approvals')} aria-pressed={activeView === 'approvals'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'approvals' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><CheckCircle size={14} /> Approvals{allOpenAsks.length > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-800">{allOpenAsks.length}</span>}</button>
-           <button type="button" onClick={() => openView('obligations')} aria-pressed={activeView === 'obligations'} className="rounded-lg px-3 py-2 text-xs font-bold">Obligations</button>
-           <button type="button" onClick={() => openView('meetings')} aria-pressed={activeView === 'meetings'} className="rounded-lg px-3 py-2 text-xs font-bold">Meetings</button>
-           <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg px-3 py-2 text-xs font-bold">Flows</button>
-           <button type="button" onClick={() => openView('cockpit')} aria-pressed={activeView === 'cockpit'} className="rounded-lg px-3 py-2 text-xs font-bold">Cockpit</button>
-        <button type="button" onClick={() => openView('publishing')} aria-pressed={activeView === 'publishing'} className="rounded-lg border px-3 py-2 text-sm font-bold">Publishing</button>
-        <button type="button" onClick={() => openView('tenant')} aria-pressed={activeView === 'tenant'} className="rounded-lg border px-3 py-2 text-sm font-bold">Account operations</button>
-        <button type="button" onClick={() => openView('artifacts')} aria-pressed={activeView === 'artifacts'} className="rounded-lg border px-3 py-2 text-sm font-bold">Office outputs</button>
-        <button type="button" onClick={() => openView('diary')} aria-pressed={activeView === 'diary'} className="rounded-lg border px-3 py-2 text-sm font-bold">Diary</button>
-           <button type="button" onClick={() => openView('activity')} aria-pressed={activeView === 'activity'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'activity' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Inbox size={14} /> Activity</button>
-           <button type="button" onClick={() => openView('scratch')} aria-pressed={activeView === 'scratch'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'scratch' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Edit2 size={14} /> Scratch</button>
-           <button type="button" onClick={() => openView('feed')} aria-pressed={activeView === 'feed'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'feed' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><Activity size={14} /> Feed</button>
-           <button type="button" onClick={() => openView('reports')} aria-pressed={activeView === 'reports'} className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold ${activeView === 'reports' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`}><BarChart3 size={14} /> Reports</button>
-         </nav>
-         {isKanbanMode && <div className="p-2 flex gap-2 overflow-x-auto">
+      <GlassNavigation key={`${currentOrgId}:${currentUser?.uid || 'local'}`} activeView={activeView} onNavigate={openView}
+        approvals={allOpenAsks.length} projects={activeProjects} selectedProjectId={selectedProjectId}
+        onProject={id => { setSelectedProjectId(id); openView('projects'); }}
+        onNewProject={() => setIsCreatingProject(true)} onSettings={() => setIsSettingsOpen(true)}
+        signedIn={!!currentUser} storageKey={`hyperflow.nav-pins.v1:${currentOrgId}:${currentUser?.uid || 'local'}`}
+        onLogout={() => { void firebaseService.logout(); }}
+        onInvite={async () => {
+                  const email = prompt("Enter email of the person to invite:");
+                  if (email) {
+                    const url = await firebaseService.createInviteResultUrl(email);
+                    if (url) {
+                      try {
+                        const response = await firebaseService.authorizedFetch('/api/send-email', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            to: email,
+                            subject: "You've been invited to HyperFlow!",
+                            html: `<p>You have been invited to join an organization on HyperFlow.</p><p><a href="${url}">Click here to accept the invitation</a></p><p>Alternatively, copy and paste this link: ${url}</p>`,
+                            projectId: 'organization-invite',
+                            taskId: 'invite',
+                            runId: `invite:${currentOrgId}:${url}`
+                          })
+                        });
+                        if (response.ok) {
+                          alert(`Invite sent successfully to ${email}!`);
+                        } else {
+                          const errData = await response.json();
+                          alert(`Error sending email: ${errData.error?.message || 'Unknown error'}. Here is your link to share manually:\n\n${url}`);
+                        }
+                      } catch (e: any) {
+                        alert(`Network error while sending email: ${e.message}. Here is your link to share manually:\n\n${url}`);
+                      }
+                    } else {
+                      alert("Failed to generate invite.");
+                    }
+                  }
+                }}
+      />
+      <div className="md:hidden shrink-0">         {isKanbanMode && <div className="p-2 flex gap-2 overflow-x-auto">
              <select 
                className="flex-1 min-w-[140px] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                value={kanbanFilterProject}
@@ -2221,166 +2233,7 @@ export const App: React.FC = () => {
          </div>}
       </div>
 
-      {/* DESKTOP HEADER - Hidden on small screens */}
-      <header className="hidden md:flex bg-white border-b border-slate-200 px-4 md:px-6 py-4 items-center justify-between sticky top-0 z-50 shadow-sm shrink-0 gap-4">
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="p-2 bg-indigo-600 rounded-lg text-white">
-            <Layers size={24} />
-          </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight block">HyperFlow</h1>
-          {currentUser ? (
-            <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
-              <button 
-                onClick={async () => {
-                  const email = prompt("Enter email of the person to invite:");
-                  if (email) {
-                    const url = await firebaseService.createInviteResultUrl(email);
-                    if (url) {
-                      try {
-                        const response = await firebaseService.authorizedFetch('/api/send-email', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            to: email,
-                            subject: "You've been invited to HyperFlow!",
-                            html: `<p>You have been invited to join an organization on HyperFlow.</p><p><a href="${url}">Click here to accept the invitation</a></p><p>Alternatively, copy and paste this link: ${url}</p>`,
-                            projectId: 'organization-invite',
-                            taskId: 'invite',
-                            runId: `invite:${currentOrgId}:${url}`
-                          })
-                        });
-                        if (response.ok) {
-                          alert(`Invite sent successfully to ${email}!`);
-                        } else {
-                          const errData = await response.json();
-                          alert(`Error sending email: ${errData.error?.message || 'Unknown error'}. Here is your link to share manually:\n\n${url}`);
-                        }
-                      } catch (e: any) {
-                        alert(`Network error while sending email: ${e.message}. Here is your link to share manually:\n\n${url}`);
-                      }
-                    } else {
-                      alert("Failed to generate invite.");
-                    }
-                  }
-                }}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-bold transition-colors">
-                INVITE
-              </button>
-              <div className="w-px h-3 bg-slate-300 mx-1"></div>
-              <button onClick={() => firebaseService.logout()} className="text-xs text-slate-500 hover:text-red-600 font-bold transition-colors">
-                LOGOUT
-              </button>
-            </div>
-          ) : null}
-        </div>
-        
-        {/* VIEW SWITCHER IN HEADER */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-          <button 
-            onClick={() => openView('projects')}
-            aria-pressed={activeView === 'projects'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-              activeView === 'projects' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {selectedProjectId ? <MapIcon size={16} /> : <Layout size={16} />}
-            <span className="hidden xl:inline">{selectedProjectId ? 'Project Map' : 'Dashboard'}</span>
-          </button>
-          <button 
-            onClick={() => openView('kanban')}
-            aria-pressed={activeView === 'kanban'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-              isKanbanMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Columns size={16} />
-            <span className="hidden xl:inline">Kanban</span>
-          </button>
-          <button 
-            onClick={() => openView('scratch')}
-            aria-pressed={activeView === 'scratch'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-              isScratchMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Edit2 size={16} />
-            <span className="hidden xl:inline">Scratch</span>
-          </button>
-          <button 
-            onClick={() => openView('feed')}
-            aria-pressed={activeView === 'feed'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-              isFeedMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Activity size={16} />
-            <span className="hidden xl:inline">Feed</span>
-          </button>
-          <button 
-            onClick={() => openView('approvals')}
-            aria-pressed={activeView === 'approvals'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-              isApprovalsMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <CheckCircle size={16} />
-            <span className="hidden xl:inline">Approvals</span>{allOpenAsks.length > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-800">{allOpenAsks.length}</span>}
-          </button>
-          <button 
-            onClick={() => openView('reports')}
-            aria-pressed={activeView === 'reports'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-              isReportingMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <BarChart3 size={16} />
-            <span className="hidden xl:inline">Reports</span>
-          </button>
-          <button
-            onClick={() => openView('activity')}
-            aria-pressed={activeView === 'activity'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${isTriageMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            title="Communications activity"
-          >
-            <Inbox size={16} />
-            <span className="hidden lg:inline">Activity</span>
-          </button>
-        </div>
-
-        <button type="button" onClick={() => openView('obligations')} aria-pressed={activeView === 'obligations'} className="rounded-lg border px-3 py-2 text-sm font-bold">Obligations</button>
-        <button type="button" onClick={() => openView('meetings')} aria-pressed={activeView === 'meetings'} className="rounded-lg border px-3 py-2 text-sm font-bold">Meetings</button>
-        <button type="button" onClick={() => openView('flows')} aria-pressed={activeView === 'flows'} className="rounded-lg border px-3 py-2 text-sm font-bold">Flows</button>
-        <button type="button" onClick={() => openView('cockpit')} aria-pressed={activeView === 'cockpit'} className="rounded-lg border px-3 py-2 text-sm font-bold">Cockpit</button>
-        <button type="button" onClick={() => openView('publishing')} aria-pressed={activeView === 'publishing'} className="rounded-lg border px-3 py-2 text-sm font-bold">Publishing</button>
-        <button type="button" onClick={() => openView('tenant')} aria-pressed={activeView === 'tenant'} className="rounded-lg border px-3 py-2 text-sm font-bold">Account operations</button>
-        <button type="button" onClick={() => openView('artifacts')} aria-pressed={activeView === 'artifacts'} className="rounded-lg border px-3 py-2 text-sm font-bold">Office outputs</button>
-        <button type="button" onClick={() => openView('diary')} aria-pressed={activeView === 'diary'} className="rounded-lg border px-3 py-2 text-sm font-bold">Diary</button>
-        {/* Header Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Settings">
-            <Settings size={20} />
-          </button>
-          
-          {selectedProjectId && !isKanbanMode && (
-             <button 
-               onClick={() => setSelectedProjectId(null)} 
-               className="hidden sm:flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium px-3 py-1.5 rounded-lg transition-colors"
-             >
-               <ChevronLeft size={18} /> Exit Project
-             </button>
-          )}
-          
-          {(!selectedProjectId && !isKanbanMode) && (
-            <div className="flex gap-2">
-              <button onClick={() => setIsCreatingProject(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-2 md:px-4 md:py-2 rounded-lg flex items-center gap-2 shadow-sm transition-all active:scale-95 text-sm md:text-base">
-                <Plus size={18} /> <span className="hidden sm:inline">New Project</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-hidden relative flex flex-col">
+      <main className="hf-app-content flex-1 overflow-hidden relative flex flex-col">
         {/* DESKTOP KANBAN CONTROLS BAR (Hidden on Mobile) */}
         {isKanbanMode && (
           <div className="hidden md:flex bg-white border-b border-slate-200 px-6 py-3 flex-wrap items-center gap-4 shrink-0 shadow-sm z-20">
