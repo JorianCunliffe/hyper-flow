@@ -1,3 +1,4 @@
+import { serviceProjectRequest, SERVICE_PROJECT_ROUTES } from './lib/serviceProjectApi.js';
 import { handleLifecycle } from './lib/tenantLifecycle/api';
 import { LifecycleError } from './lib/tenantLifecycle/model';
 import { handleMemoryContextRequest } from './lib/communications/memoryContext';
@@ -205,6 +206,19 @@ async function startServer() {
         return res.status(200).json(await handleThreadRegisterRequest(action, req, member));
       } catch (error: any) {
         return res.status(error instanceof ApiAuthError ? error.status : threadRegisterErrorStatus(error)).json({ error: error?.message || 'Thread register request failed' });
+      }
+    });
+  }
+
+  for (const [route, action] of Object.entries(SERVICE_PROJECT_ROUTES)) {
+    app.all(route, async (req, res) => {
+      try {
+        const member = await requireAppMember(req as any);
+        const result = await serviceProjectRequest(action, req, member);
+        return res.status(result.status).json(result.body);
+      } catch (error: any) {
+        return res.status(error instanceof ApiAuthError ? error.status : threadRegisterErrorStatus(error))
+          .json({ error: error?.message || 'Service setup unavailable' });
       }
     });
   }
