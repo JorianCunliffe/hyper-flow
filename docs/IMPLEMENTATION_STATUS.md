@@ -38,10 +38,10 @@ Last updated: 9 September 2026.
 | P06 | Visible reusable flows from requests | Released; controlled live acceptance verified | P04; P05 for meeting inputs | [P06 record](implementation/P06.md) |
 | P07 | CEO cockpit, follow-up and receptionist | Released; controlled cockpit verified; fresh channels tracked in P12 | P06, P02–P04; P05 for meeting briefs | [P07 record](implementation/P07.md) |
 | P08 | Diary and calendar execution | Released; live calendar grant and booking acceptance pending | P07, P01 | [P08 record](implementation/P08.md) |
-| P09 | Reports, templates and office artifacts | Released; controlled live slide report reviewed; Google export acceptance pending | P06; P04/P05 for operational inputs | [P09 record](implementation/P09.md) |
+| P09 | Reports, templates and office artifacts | Released; controlled live slide report reviewed; controlled Google export verified in P12 | P06; P04/P05 for operational inputs | [P09 record](implementation/P09.md) |
 | P10 | Approved social and website publication | Internal workflow released and controlled live draft/flow verified; selected providers and live publication pending | P09 | [P10 record](implementation/P10.md) |
 | P11 | Complete REST parity and SaaS operations | In progress: account APIs, recovery and database erasure live; private Sydney storage, Ask attachments and audited diagnostics verified live; full parity and provider recovery remain | Cross-cutting from P01; final audit after selected product phases | [P11](implementation/P11.md) |
-| P12 | Integrated CEO acceptance and release | Controlled checks and fresh human voice delivery verified; provider-target gates and full acceptance remain | P00–P11 for full programme | [P12](implementation/P12.md) |
+| P12 | Integrated CEO acceptance and release | Controlled checks and fresh human voice delivery verified; controlled CEO journey, file restore and Google export passed; calendar/social/CMS and full programme acceptance remain | P00–P11 for full programme | [P12](implementation/P12.md) |
 
 Replace “No phase record yet” with links to the actual per-app records when they are created. Do not pre-create pass results or mark a whole phase complete from one work package.
 
@@ -61,3 +61,5 @@ Implement and verify Phase 11 tenant operations and API parity, then repeat impl
 | 2026-09-08 | Email draft-only is an option for every organization; it is the default. The CEO is in the first organization. | User clarification; no special CEO tenant ID required. |
 
 Phase 12 now has a pinned cross-service CI job and a combined contact, commitment, weekly report and recovery journey. Provider-target acceptance, backup restore and CEO signoff remain open; see [P12](implementation/P12.md).
+
+9 September follow-up: the selected live CEO meeting-to-fulfillment journey and isolated provider file restore passed. Workbook clipping was fixed and deployed;585 tests and13 integrated scenarios pass. Google document access and report export work for the CEO account. Diary requires calendar-specific consent through its booking-access button. See the final controlled-journey record in [P12](implementation/P12.md).
