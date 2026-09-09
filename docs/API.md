@@ -628,7 +628,7 @@ The frontend uses one wizard from **Create Project** and **Settings → Service 
 
 `POST /api/service-projects/validate` accepts `{ "setup": ... }`. Email triage validation performs a live mailbox sync/health check, verifies provider/draft capabilities, tenant classification/draft ceilings, digest recipient, time, and timezone. Coaching validation verifies the person and E.164 phone/voice identity, Google connection, Doc read, Sheet read/edit capability, range, retry policy, reviewer reachability, schedule, and the tenant `sheet_write` ceiling. A `422` response includes all readiness checks; a project must not be created until `validation.ready=true`.
 
-`GET /api/service-projects/status?projectId=...` returns the project schedules, safe connection references, latest run and digest, global scheduler `lastTickAt`/`lastSuccessfulTickAt`, overdue warning, and upgrade state. When a tenant has exactly one triage project and one legacy unbound triage schedule, the status path attaches them automatically; ambiguous legacy schedules remain unbound for the Upgrade setup wizard.
+`GET /api/service-projects/status?projectId=...` returns the project schedules, safe connection references, latest run and digest, global scheduler `lastTickAt`/`lastSuccessfulTickAt`, overdue warning, and upgrade state. The status path is read-only. Legacy unbound triage schedules are reported through upgradeRequired and unboundScheduleIds; use an explicit schedule update to attach or pause them. Enabled mailbox-bound legacy schedules retain their existing scheduler compatibility behavior until changed.
 
 ### `GET /api/triage?limit=100`
 
