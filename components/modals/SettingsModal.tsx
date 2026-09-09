@@ -763,7 +763,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   ['smsPrompt', 'Additional SMS instructions', 'Optional channel-specific style and questions'],
                   ['voicePrompt', 'Additional voice instructions', 'Optional channel-specific style and questions'],
                 ] as const).map(([key,label,placeholder]) => <label key={key} className="mb-3 block text-sm font-semibold text-slate-700">{label}<textarea rows={3} maxLength={key === 'prompt' ? 4000 : 2000} value={agentDraft.conversation?.[key] || ''} placeholder={placeholder} onChange={event => setAgentDraft(current => ({...current,conversation:{...current.conversation,[key]:event.target.value}}))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-3 font-normal"/></label>)}
-                <p className="text-xs text-slate-600">The shared prompt applies first, then the channel instructions. Permissions, draft-only email and approval rules always apply. Voice retains its existing line/contact prompt. History is bounded and excludes private, failed and retracted evidence. Save with “Save agent profile” below.</p>
+                <p className="text-xs text-slate-600">The shared prompt applies first, then the channel instructions. Permissions, draft-only email and approval rules always apply. Voice retains its existing line/contact prompt. History is bounded and excludes private, failed and retracted evidence. Use Save agent profile below.</p>
               </fieldset>
               <fieldset>
                 <legend className="text-sm font-bold text-slate-700 mb-2">Person-specific project access</legend>

@@ -97,12 +97,12 @@ export const buildVoiceAgentContext = async (
 
   const project = projects.find(candidate => String(candidate.id) === routing.projectId);
   if (!project) throw new Error('Selected project is unavailable');
-  const [sessions, triage] = await Promise.all([
+  const [sessions, triage, operating, history] = await Promise.all([
     listCoachingSessions(input.tenant_id, routing.projectId, 5),
-    listTenantTriageItems(input.tenant_id, 15)
+    listTenantTriageItems(input.tenant_id, 15),
+    channelOperatingContext(input.tenant_id, input.person_id, routing.projectId),
+    conversationEvidence({orgId: input.tenant_id, personId: input.person_id, projectId: routing.projectId, profile, threadId: input.thread_id})
   ]);
-  const operating=await channelOperatingContext(input.tenant_id,input.person_id,routing.projectId);
-  const history = await conversationEvidence({orgId:input.tenant_id,personId:input.person_id,projectId:routing.projectId,profile,threadId:input.thread_id});
   const safeContext = operating.audience==='ceo' ? {
     history,
     operating,
