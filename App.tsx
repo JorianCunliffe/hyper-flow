@@ -1,3 +1,4 @@
+import { TenantLifecyclePanel } from './components/TenantLifecyclePanel';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import html2canvas from 'html2canvas';
 import {
@@ -2074,7 +2075,7 @@ export const App: React.FC = () => {
     }
 
     if (!currentOrgId) {
-      if(accessRevoked)return <div className="h-screen flex flex-col items-center justify-center gap-4 p-6"><h1 className="text-2xl font-bold">Organization access is unavailable</h1><p>Cached cloud records have been cleared. Sign in again after your administrator restores access.</p><button className="rounded border px-4 py-2" onClick={()=>void firebaseService.logout()}>Sign out</button></div>;
+      if(accessRevoked)return <div className="h-screen flex flex-col items-center justify-center gap-4 p-6"><h1 className="text-2xl font-bold">Organization access is unavailable</h1><p>Cached cloud records have been cleared. Sign in again after your administrator restores access.</p><TenantLifecyclePanel /><button className="rounded border px-4 py-2" onClick={()=>void firebaseService.logout()}>Sign out</button></div>;
       return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900">
           <div className="bg-white p-8 border border-slate-200 rounded shadow-md w-full max-w-md">

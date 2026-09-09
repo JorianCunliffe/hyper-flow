@@ -62,3 +62,9 @@ export function replaceWorkspace(current: any, body: any, now = Date.now()) {
     );
   return result;
 }
+
+/** Firebase omits empty objects/arrays. A REST read must remain a valid PUT input. */
+export function workspaceView(data:any){
+ const rows=(value:any)=>Array.isArray(value)?value.filter(Boolean):Object.values(value||{});
+ return {...(data||{}),projects:rows(data?.projects),settings:data?.settings||{},scratchTasks:rows(data?.scratchTasks),activityLogs:rows(data?.activityLogs),dataRevision:Number(data?.dataRevision||0)};
+}

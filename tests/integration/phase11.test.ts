@@ -20,6 +20,7 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
     private_key: privateKey,
   });
   process.env.FIREBASE_DATABASE_URL = "https://demo-hyperflow.firebaseio.com";
+  process.env.FIREBASE_ENFORCE_TENANT_LIFECYCLE = "true";
   const { handleTenantControl, handleWorkspace, controlStore } =
     await import("../../lib/tenantControl/api");
   const { requireAppMember } = await import("../../lib/apiAuth");
@@ -243,6 +244,40 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
         { scopes: ["workspace:write"] },
       ),
     );
+    await assertFails(set(ref(env.authenticatedContext('hyperflow-runtime-v1').database(),`tenant_control/${member.orgId}/forged`),true));
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),`tenant_lifecycle/${member.orgId}`),{state:'suspended',revision:1}));
+    await assertFails(get(ref(env.authenticatedContext(member.uid).database(),`projects/${member.orgId}`)));
+    await assertFails(set(ref(env.authenticatedContext(member.uid).database(),`projects/${member.orgId}/late`),true));
+    await assert.rejects(controlStore.transact(member.orgId,r=>({...r!,revision:r!.revision+1})),/permission_denied/i);
+    const otherActor={uid:'other_ceo',orgId:'org_other',role:'owner'};
+    const otherRead:any=await handleWorkspace({method:'GET'},otherActor);
+    await handleWorkspace({method:'PUT',body:{expectedRevision:otherRead.data.dataRevision,data:otherRead.data}},otherActor);
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),`tenant_lifecycle/${member.orgId}`),{state:'active',revision:2}));
+    for(const root of ['agent_profiles','integration_connections','integration_credentials','oauth_states','workspace_grants','external_action_receipts','coaching_sessions','conversation_contexts','agent_voice_context_requests']){
+      for(const uid of [member.uid,'hyperflow-runtime-v1']){
+        const browser=env.authenticatedContext(uid).database();
+        await assertFails(get(ref(browser,`${root}/${member.orgId}`)));
+        await assertFails(set(ref(browser,`${root}/${member.orgId}/forged`),{status:'completed'}));
+      }
+    }
+    const {lifecycleOwner,changeDatabaseLifecycle,exportLifecycleChunk,readLifecycle}=await import('../../lib/tenantLifecycle/store');
+    assert.equal((await lifecycleOwner('other_ceo')).orgId,'org_other');
+    await assert.rejects(lifecycleOwner(member.uid,'org_other'),/owner/);
+    const receipt={owner:'communications-service' as const,status:'suspended',revision:2};
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'external_action_receipts/org_other/held'),{status:'uncertain'}));
+    let lifecycle=await changeDatabaseLifecycle('org_other','other_ceo',{operation:'suspend',revision:0,requestId:'suspend_blocked',communicationsReceipt:receipt});
+    assert.equal(lifecycle.state,'active');assert.equal(lifecycle.receipts.suspend_blocked.status,'blocked');
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'external_action_receipts/org_other/held'),null));
+    lifecycle=await changeDatabaseLifecycle('org_other','other_ceo',{operation:'suspend',revision:lifecycle.revision,requestId:'suspend_export',communicationsReceipt:receipt});
+    assert.equal(lifecycle.state,'suspended');
+    const exported=await exportLifecycleChunk('org_other','other_ceo',{dataset:'projects',revision:lifecycle.revision,offset:0});
+    assert.equal(JSON.parse(Buffer.from(exported.content,'base64').toString()).projects[0].name,'org_other');
+    assert.equal(exported.nextOffset,null);assert.equal(exported.files,'not-included');
+    await assert.rejects(exportLifecycleChunk('org_other','other_ceo',{dataset:'integration_credentials',revision:lifecycle.revision,offset:0}),/not available/);
+    await assert.rejects(exportLifecycleChunk('org_other','other_ceo',{dataset:'projects',revision:0,offset:0}),/suspended revision/);
+    assert.ok(Object.values((await readLifecycle('org_other')).receipts).some(x=>x.operation==='export'));
+    await changeDatabaseLifecycle('org_other','other_ceo',{operation:'resume',revision:lifecycle.revision,requestId:'resume_export'});
+    assert.equal((await handleWorkspace({method:'GET'},otherActor)).owner,'hyperflow');
     const settings = await controlStore.read(member.orgId);
     await handleTenantControl(
       {

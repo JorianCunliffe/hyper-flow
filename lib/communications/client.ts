@@ -33,6 +33,8 @@ export interface CommunicationsClientOptions {
 }
 
 export class HttpCommunicationsClient implements CommunicationsClient {
+  async changeTenantLifecycle(tenantId:string,body:Record<string,unknown>):Promise<any>{this.requireTenant(tenantId);return this.rawRequest('/v1/tenant/lifecycle',{method:'POST',tenantId,body});}
+  async readTenantLifecycle(tenantId:string):Promise<any>{this.requireTenant(tenantId);return this.rawRequest('/v1/tenant/lifecycle',{method:'GET',tenantId});}
   async ingestCalendarObservation(tenantId:string,event:Record<string,unknown>):Promise<any>{
     this.requireTenant(tenantId);return this.rawRequest('/v1/calendar/events',{method:'POST',tenantId,body:event});
   }

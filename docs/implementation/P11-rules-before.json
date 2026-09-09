@@ -1,0 +1,169 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "invites": {
+      ".read": false,
+      ".write": false
+    },
+
+    "projects": {
+      "$orgId": {
+        ".read": "auth != null && root.child('organizations').child($orgId).child('members').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('organizations').child($orgId).child('members').child(auth.uid).exists()"
+      }
+    },
+
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": false
+      }
+    },
+
+    "organizations": {
+      "$orgId": {
+        ".read": "auth != null && root.child('organizations').child($orgId).child('members').child(auth.uid).exists()",
+        ".write": false
+      }
+    },
+
+    "accounts": {
+      ".read": false,
+      ".write": false
+    },
+
+    "external_events": {
+      ".read": false,
+      ".write": false
+    },
+
+    "ask_resolutions": {
+      ".read": false,
+      ".write": false
+    },
+
+    "communication_delivery": {
+      ".read": false,
+      ".write": false
+    },
+
+    "triage_items": {
+      ".read": false,
+      ".write": false,
+      "$orgId": {
+        ".indexOn": "updatedAt"
+      }
+    },
+
+    "triage_digests": {
+      ".read": false,
+      ".write": false,
+      "$orgId": {
+        ".indexOn": "scheduledFor"
+      }
+    },
+
+    "schedules": {
+      ".read": false,
+      ".write": false
+    },
+
+    "schedule_runs": {
+      ".read": false,
+      ".write": false,
+      "$orgId": {
+        "$scheduleId": {
+          ".indexOn": "scheduledFor"
+        }
+      }
+    },
+
+    "scheduler_health": {
+      ".read": false,
+      ".write": false
+    },
+
+    "service_setup_drafts": {
+      ".read": false,
+      ".write": false
+    },
+
+    "agent_profiles": {
+      ".read": false,
+      ".write": false
+    },
+
+    "agent_inbox_jobs": {
+      ".read": false,
+      ".write": false,
+      "$orgId": {
+        ".indexOn": "status"
+      }
+    },
+
+    "agent_inbox_pending": {
+      ".read": false,
+      ".write": false,
+      ".indexOn": "availableAt"
+    },
+
+    "conversation_contexts": {
+      ".read": false,
+      ".write": false
+    },
+
+    "agent_voice_context_requests": {
+      ".read": false,
+      ".write": false
+    },
+
+    "integration_connections": {
+      ".read": false,
+      ".write": false
+    },
+
+    "integration_credentials": {
+      ".read": false,
+      ".write": false
+    },
+
+    "oauth_states": {
+      ".read": false,
+      ".write": false
+    },
+
+    "workspace_grants": {
+      ".read": false,
+      ".write": false
+    },
+
+    "external_action_receipts": {
+      ".read": false,
+      ".write": false
+    },
+
+    "coaching_sessions": {
+      ".read": false,
+      ".write": false
+    },
+
+    "coaching_retry_pending": {
+      ".read": false,
+      ".write": false,
+      ".indexOn": "availableAt"
+    },
+
+    "communication_cursors": {
+      ".read": false,
+      ".write": false
+    },
+
+    "serverActivity": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
+
