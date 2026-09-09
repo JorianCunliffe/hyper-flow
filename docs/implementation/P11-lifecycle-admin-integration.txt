@@ -1,0 +1,42 @@
+i  emulators: Starting emulators: database
+i  emulators: Detected demo project ID "demo-hyperflow", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  database: Database Emulator logging to database-debug.log
+i  Running script: node --import tsx --test tests/integration/phase11.test.ts
+(node:26716) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2026-09-09T01:46:26.506Z]  @firebase/database: FIREBASE WARNING: set at /tenant_control/org_phase11/clients/forged failed: permission_denied
+[2026-09-09T01:46:26.565Z]  @firebase/database: FIREBASE WARNING: set at /tenant_control/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:26.752Z]  @firebase/database: FIREBASE WARNING: set at /projects/org_phase11/late failed: permission_denied
+[2026-09-09T01:46:26.898Z]  @firebase/database: FIREBASE WARNING: set at /agent_profiles/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:26.958Z]  @firebase/database: FIREBASE WARNING: set at /agent_profiles/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.024Z]  @firebase/database: FIREBASE WARNING: set at /integration_connections/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.088Z]  @firebase/database: FIREBASE WARNING: set at /integration_connections/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.147Z]  @firebase/database: FIREBASE WARNING: set at /integration_credentials/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.210Z]  @firebase/database: FIREBASE WARNING: set at /integration_credentials/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.274Z]  @firebase/database: FIREBASE WARNING: set at /oauth_states/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.340Z]  @firebase/database: FIREBASE WARNING: set at /oauth_states/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.402Z]  @firebase/database: FIREBASE WARNING: set at /workspace_grants/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.460Z]  @firebase/database: FIREBASE WARNING: set at /workspace_grants/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.524Z]  @firebase/database: FIREBASE WARNING: set at /external_action_receipts/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.586Z]  @firebase/database: FIREBASE WARNING: set at /external_action_receipts/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.653Z]  @firebase/database: FIREBASE WARNING: set at /coaching_sessions/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.712Z]  @firebase/database: FIREBASE WARNING: set at /coaching_sessions/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.775Z]  @firebase/database: FIREBASE WARNING: set at /conversation_contexts/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.834Z]  @firebase/database: FIREBASE WARNING: set at /conversation_contexts/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.898Z]  @firebase/database: FIREBASE WARNING: set at /agent_voice_context_requests/org_phase11/forged failed: permission_denied
+[2026-09-09T01:46:27.959Z]  @firebase/database: FIREBASE WARNING: set at /agent_voice_context_requests/org_phase11/forged failed: permission_denied
+✔ Phase 11 tenant API credentials and workspace revisions use real isolated records (5200.8355ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5857.6149
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  database: Stopping Database Emulator
+!  Database Emulator has exited upon receiving signal: SIGINT
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

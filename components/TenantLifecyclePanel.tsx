@@ -130,7 +130,7 @@ export function TenantLifecyclePanel() {
     <section className="border rounded p-4 space-y-3">
       <h2 className="text-xl font-semibold">Account recovery and export</h2>
       <p>
-        Owner access only. These controls pause database activity. File storage
+        Administrator access only. These controls pause database activity. File storage
         and external provider resources require separate cleanup. Deletion is
         not enabled here.
       </p>

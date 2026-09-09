@@ -19,13 +19,13 @@ export async function lifecycleOwner(uid: string, orgId?: string) {
   const db = getLifecycleDatabase();
   const user = (await db.ref(`users/${key(uid)}`).get()).val();
   if (!user?.orgId || (orgId && orgId !== user.orgId))
-    throw new LifecycleError(403, "Current organization owner required");
+    throw new LifecycleError(403, "Current organization administrator required");
   const role = (
     await db.ref(`organizations/${key(user.orgId)}/members/${uid}/role`).get()
   ).val();
-  if (role !== "owner")
-    throw new LifecycleError(403, "Current organization owner required");
-  return { uid, orgId: user.orgId, role: "owner" as const };
+  if (!["owner", "admin"].includes(role))
+    throw new LifecycleError(403, "Current organization administrator required");
+  return { uid, orgId: user.orgId, role: role as "owner" | "admin" };
 }
 export async function readLifecycle(org: string): Promise<TenantLifecycle> {
   return lifecycleRecord(
