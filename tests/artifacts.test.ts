@@ -331,7 +331,7 @@ test("all Office packages contain editable source references and typed workbook 
   const f = fixture();
   for (const format of ["docx", "pptx", "xlsx"]) {
     const j = (await f.prepare(format, "format-" + format)).item;
-    if (format === "pptx") j.inputs.evidence[0].text = Array.from({length:12},(_,i)=>`Evidence line ${i+1}`).join("\n");
+    if (format === "pptx" || format === "xlsx") j.inputs.evidence[0].text = Array.from({length:12},(_,i)=>`Evidence line ${i+1}`).join("\n");
     const result = await renderArtifact(j);
     assert.equal(hash(result.bytes), result.receipt.sha256);
     const zip = await JSZip.loadAsync(result.bytes, { checkCRC32: true });
@@ -372,6 +372,7 @@ test("all Office packages contain editable source references and typed workbook 
         'IF(OR(F2="fulfilled",F2="cancelled"),0,1)',
       );
       assert.equal(w.getWorksheet("Evidence")!.getCell("C2").value, "comm_one");
+      assert.ok(w.getWorksheet("Evidence")!.getRow(2).height >= 12 * 16 + 8, "Explicit transcript lines remain visible");
     }
   }
 });
@@ -546,4 +547,24 @@ test("PNG branding stays embedded in editable slides and rejects unsupported or 
   const slide = await zip.file("ppt/slides/slide1.xml")!.async("string");
   assert.match(slide, /Controlled brand/);
   assert.match(slide, /<p:pic>/);
+});
+
+test("long newline-heavy workbook evidence retains all text across bounded rows", async () => {
+  const f = fixture();
+  const j = (await f.prepare("xlsx", "newline-heavy")).item;
+  const text = Array.from({length: 80}, (_, i) => `Speaker ${i}: controlled evidence`).join("\n");
+  j.inputs.evidence = [{...j.inputs.evidence[0], text}];
+  j.inputs.rows[0].sourceCommunicationIds = [];
+  const result = await renderArtifact(j);
+  const w = new ExcelJS.Workbook(); await w.xlsx.load(result.bytes as any);
+  const sheet = w.getWorksheet("Evidence")!;
+  let recovered = "";
+  sheet.eachRow((row, index) => {
+    if (index === 1) return;
+    recovered += String(row.getCell(2).value);
+    assert.ok(row.height < 409, "No source row is clamped at Excel's height limit");
+    assert.equal(row.getCell(3).value, "comm_one");
+  });
+  assert.equal(recovered, text);
+  assert.equal(w.getWorksheet("Accepted work")!.getCell("I2").value, null);
 });

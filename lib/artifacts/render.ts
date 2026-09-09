@@ -409,7 +409,7 @@ export async function renderArtifact(rawJob: ArtifactJob) {
         r.state,
         Number.isFinite(d) ? new Date(d) : null,
         r.timezone,
-        r.sourceCommunicationIds.join(", "),
+        r.sourceCommunicationIds.join(", ") || null,
         r.sourceChanged ? "Yes" : "No",
         {
           formula: `IF(OR(F${n}="fulfilled",F${n}="cancelled"),0,1)`,
@@ -445,7 +445,17 @@ export async function renderArtifact(rawJob: ArtifactJob) {
       "Date qualification",
     ]);
     job.inputs.evidence.forEach((e) => {
-      const chunks = e.text.match(/[\s\S]{1,800}/g) || [""];
+      // Bound both characters and explicit lines so a transcript fits Excel's row-height limit.
+      const chunks: string[] = [];
+      let chunk = "", breaks = 0;
+      for (const character of e.text) {
+        chunk += character;
+        if (character === "\n") breaks++;
+        if (chunk.length >= 800 || breaks >= 12) {
+          chunks.push(chunk); chunk = ""; breaks = 0;
+        }
+      }
+      if (chunk || !chunks.length) chunks.push(chunk);
       chunks.forEach((text, index) =>
         sources.addRow([
           e.label + (index ? " continued" : ""),
@@ -477,10 +487,9 @@ export async function renderArtifact(rawJob: ArtifactJob) {
           if (typeof cell.value === "string")
             lines = Math.max(
               lines,
-              Math.ceil(
-                cell.value.length /
-                  Math.max(8, (sheet.getColumn(col).width || 20) - 5),
-              ),
+              cell.value.split(/\r?\n/).reduce((total, paragraph) =>
+                total + Math.max(1, Math.ceil(paragraph.length /
+                  Math.max(8, (sheet.getColumn(col).width || 20) - 5))), 0),
             );
         });
         row.height = n === 1 ? 30 : Math.min(409, Math.max(30, lines * 16 + 8));
