@@ -1246,6 +1246,12 @@ export const normalizeTenantAgentProfile = (
     timezone,
     primaryPersonId: cleanOptionalString(input.primaryPersonId ?? existing?.primaryPersonId),
     primaryUserId: cleanOptionalString(input.primaryUserId ?? existing?.primaryUserId),
+    conversation: {
+      historyEnabled: (input.conversation?.historyEnabled ?? existing?.conversation?.historyEnabled) !== false,
+      prompt: String(input.conversation?.prompt ?? existing?.conversation?.prompt ?? '').trim().slice(0, 4000),
+      smsPrompt: String(input.conversation?.smsPrompt ?? existing?.conversation?.smsPrompt ?? '').trim().slice(0, 2000),
+      voicePrompt: String(input.conversation?.voicePrompt ?? existing?.conversation?.voicePrompt ?? '').trim().slice(0, 2000),
+    },
     receptionistEnabled: input.receptionistEnabled ?? existing?.receptionistEnabled ?? false,
     receptionistProjectId: cleanOptionalString(input.receptionistProjectId ?? existing?.receptionistProjectId),
     contactWindow: normalizeContactWindow(input.contactWindow ?? existing?.contactWindow),

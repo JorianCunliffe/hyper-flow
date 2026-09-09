@@ -249,7 +249,7 @@ export const receiveExternalEvent = async (raw: any): Promise<ExternalEventOutco
 
     let communication: CommunicationResult | undefined;
     const tenantSettings: CommunicationsSettings = await readTenantCommunicationsSettings(orgId).catch(() => ({}));
-    if (event.communication_id && (event.channel === 'email' || event.payload.channel === 'email')) {
+    if (event.communication_id && (isInboundCommunicationEvent(event.type) || event.channel === 'email' || event.payload.channel === 'email')) {
       communication = await createCommunicationsClient().getCommunication(orgId, event.communication_id);
       if (!event.response?.text && communication.content) {
         event.response = { ...(event.response || {}), text: communication.content };

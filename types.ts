@@ -160,6 +160,12 @@ export interface TenantAgentProfile {
   timezone: string;
   primaryPersonId?: string;
   primaryUserId?: string;
+  conversation?: {
+    historyEnabled?: boolean;
+    prompt?: string;
+    smsPrompt?: string;
+    voicePrompt?: string;
+  };
   receptionistEnabled?: boolean;
   receptionistProjectId?: string;
   contactWindow?: {startHour:number;endHour:number;maxPerDay:number;maxPerContact:number};

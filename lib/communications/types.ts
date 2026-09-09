@@ -16,6 +16,7 @@ export interface CommunicationPurpose {
 }
 
 export interface SendSmsRequest {
+  thread_id?: string;
   to: string;
   from: string;
   body: string;
