@@ -20,6 +20,7 @@ export class HyperFlowClient {
   replaceWorkspace(expectedRevision:number,data:unknown){return this.request('PUT','/api/workspace',{body:{expectedRevision,data}});}
   lifecycle(service?:'communications'){return this.request('GET','/api/tenant',{query:{view:'lifecycle',...(service?{service}:{})}});}
   lifecycleOperation(body:unknown){return this.request('POST','/api/tenant',{query:{view:'lifecycle'},body});}
+  eraseDatabaseRecords(body:{requestId:string;revision:number;confirmation:'Erase HyperFlow database records';backupReviewed:true}){return this.lifecycleOperation({...body,operation:'erase_database'});}
   exportChunk(dataset:string,revision:number,offset=0){return this.request('GET','/api/tenant',{query:{view:'lifecycle',dataset,revision,offset}});}
   tenant(){return this.request('GET','/api/tenant');}
   tenantOperation(body:unknown){return this.request('POST','/api/tenant',{body});}

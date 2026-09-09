@@ -9,6 +9,7 @@ import {
   readLifecycle,
   exportLifecycleChunk,
   changeDatabaseLifecycle,
+  eraseDatabaseRecords,
   transactLifecycle,
 } from "./store.js";
 import { LifecycleError, TENANT_DATA_ROOTS, SECRET_ROOTS } from "./model.js";
@@ -18,6 +19,7 @@ export const lifecycleDependencies = {
   readLifecycle,
   exportLifecycleChunk,
   changeDatabaseLifecycle,
+  eraseDatabaseRecords,
   transactLifecycle,
   communications: () => new HttpCommunicationsClient(),
 };
@@ -60,7 +62,7 @@ async function executeLifecycle(
       datasets: TENANT_DATA_ROOTS.filter((x) => !SECRET_ROOTS.has(x)),
       files: "Separate storage lifecycle; not included",
       communications: "Separate service and receipts",
-      erasure: "Not enabled",
+      erasure: "Human administrator database erasure after suspended export and Communications local erasure; files and identities retained",
       retention: "Manual review; no automatic deletion policy",
     };
   }
@@ -134,10 +136,24 @@ async function executeLifecycle(
     });
     return result;
   }
+  if (body.operation === 'erase_database') {
+    const observed = await deps.communications().readTenantLifecycle(owner.orgId);
+    if (observed.owner !== 'communications-service' || observed.tenant?.status !== 'closed')
+      throw new LifecycleError(409, 'Complete Communications local erasure first');
+    return {
+      owner: 'hyperflow', scope: 'HyperFlow business database records only',
+      lifecycle: await deps.eraseDatabaseRecords(owner.orgId, owner.uid, {
+        requestId: body.requestId, revision: body.revision, confirmation: body.confirmation,
+        backupReviewed: body.backupReviewed,
+        communicationsReceipt: { owner: 'communications-service', status: observed.tenant.status, revision: observed.tenant.lifecycle_revision },
+      }),
+      files: 'retained for separate cleanup', identities: 'retained', providers: 'not cleaned up', backups: 'not cleaned up',
+    };
+  }
   if (!["suspend", "resume"].includes(body.operation))
     throw new LifecycleError(
       422,
-      "Supported database operations are suspend and resume",
+      "Supported database operations are suspend, resume and erase_database",
     );
   let receipt;
   if (body.operation === "suspend") {

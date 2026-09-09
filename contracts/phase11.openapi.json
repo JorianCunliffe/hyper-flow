@@ -132,7 +132,7 @@
       },
       "post": {
         "operationId": "changeHyperFlowTenantControls",
-        "description": " With view=lifecycle, current human owners or administrators may request suspend/resume using requestId and revision. service=communications forwards the command with a human audit journal and returns the Communications-owned receipt. Without service, it changes only HyperFlow database state and requires enabled runtime guards; suspend requires an independently fetched Communications suspension receipt. No file/provider cleanup or HyperFlow erasure is implied.",
+        "description": "With view=lifecycle, current human owners or administrators may request suspend/resume using requestId and revision. service=communications forwards those commands with a human audit journal and returns the Communications-owned receipt. Without service, only HyperFlow database state changes and enabled runtime guards are required. Suspension independently reads Communications suspension state. erase_database additionally requires confirmation=\"Erase HyperFlow database records\", backupReviewed=true, a recorded export at the current suspended revision, and independently verified Communications status closed. Retry an interrupted erasure with the original requestId; never invent a replacement. Successful erasure is irreversible via Resume. File manifests, identities, membership, recovery audit, provider resources and backups are retained. Communications erasure requires separate authority and is not forwarded by this endpoint.",
         "security": [
           {
             "Bearer": []

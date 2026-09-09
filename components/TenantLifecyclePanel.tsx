@@ -18,6 +18,8 @@ async function request(query = "", body?: any) {
   return result;
 }
 export function TenantLifecyclePanel() {
+  const [eraseText, setEraseText] = useState('');
+  const [backupReviewed, setBackupReviewed] = useState(false);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -131,8 +133,8 @@ export function TenantLifecyclePanel() {
       <h2 className="text-xl font-semibold">Account recovery and export</h2>
       <p>
         Administrator access only. These controls pause database activity. File storage
-        and external provider resources require separate cleanup. Deletion is
-        not enabled here.
+        and external provider resources require separate cleanup. Database erasure
+        retains file manifests and account identities.
       </p>
       {error && <p role="alert">{error}</p>}
       <button
@@ -228,6 +230,7 @@ export function TenantLifecyclePanel() {
                           operation: r.operation,
                           revision: data.lifecycle.revision,
                           requestId: r.id,
+                          ...(r.operation === 'erase_database' ? { confirmation: 'Erase HyperFlow database records', backupReviewed: true } : {}),
                         }),
                 );
               }}
@@ -258,6 +261,14 @@ export function TenantLifecyclePanel() {
             Communications records are excluded. Downloaded copies remain your
             responsibility.
           </p>
+          {data.lifecycle.state === 'suspended' && <fieldset className="border rounded p-3 space-y-2">
+            <legend>Erase HyperFlow database records</legend>
+            <p>This permanently removes business records and HyperFlow API credentials. Files, file manifests, account identities, recovery audit, provider data and backups remain. Complete Communications local erasure separately first. This cannot be undone through Resume.</p>
+            <label className="block"><input type="checkbox" checked={backupReviewed} onChange={e => setBackupReviewed(e.target.checked)} /> I have downloaded and reviewed the exports I need.</label>
+            <label className="block">Type “Erase HyperFlow database records”<input className="block border p-2" value={eraseText} onChange={e => setEraseText(e.target.value)} /></label>
+            <button className={button} disabled={busy || !!pending || !data.databaseGuardsEnabled || !backupReviewed || eraseText !== 'Erase HyperFlow database records' || cs?.tenant?.status !== 'closed'}
+              onClick={() => void command({ operation: 'erase_database', requestId: crypto.randomUUID(), revision: data.lifecycle.revision, confirmation: eraseText, backupReviewed })}>Permanently erase database records</button>
+          </fieldset>}
           {Object.values<any>(data.lifecycle.receipts || {})
             .sort((a, b) => b.at - a.at)
             .slice(0, 50)

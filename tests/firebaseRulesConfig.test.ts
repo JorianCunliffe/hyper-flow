@@ -35,7 +35,7 @@ describe('Firebase production rules configuration', () => {
     assert.equal(rules.agent_inbox_jobs['.read'],false);
     assert.equal(rules.agent_inbox_jobs['.write'],false);
     for(const root of ['agent_inbox_pending','coaching_retry_pending']){
-      assert.equal(rules[root]['.indexOn'],'availableAt');
+      assert.deepEqual(rules[root]['.indexOn'],['availableAt','orgId']);
       assert.match(rules[root]['.read'],/auth.token.hyperflow_runtime === true/);
     }
   });

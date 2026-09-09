@@ -71,6 +71,7 @@ function fixture() {
     suspend() {
       status = "suspended";
     },
+    close() { status = 'closed'; },
     loseAudit() {
       failAudit = true;
     },
@@ -99,6 +100,24 @@ test("lifecycle composition derives the owner tenant and ignores claimed service
     f.calls.at(-1).input.communicationsReceipt.owner,
     "communications-service",
   );
+});
+test('database erasure requires authoritative Communications closure and derives the human tenant', async () => {
+  const f = fixture();
+  let invoked = false;
+  f.deps.eraseDatabaseRecords = async (org: string, actor: string, input: any) => {
+    invoked = true;
+    assert.equal(org, 'tenant_fixture');
+    assert.equal(actor, 'owner_fixture');
+    assert.deepEqual(input.communicationsReceipt, { owner: 'communications-service', status: 'closed', revision: 2 });
+    return { state: 'erased' };
+  };
+  const req = { headers: {}, method: 'POST', body: { operation: 'erase_database', orgId: 'other', communicationsReceipt: { status: 'closed', revision: 999 }, requestId: 'erase_fixture', revision: 3, confirmation: 'Erase HyperFlow database records', backupReviewed: true } };
+  await assert.rejects(handleLifecycle(req, f.deps), /Communications local erasure first/);
+  assert.equal(invoked, false);
+  f.close();
+  const r = await handleLifecycle(req, f.deps);
+  assert.equal(r.lifecycle.state, 'erased');
+  assert.equal(r.files, 'retained for separate cleanup');
 });
 test("forwarded lifecycle commands preserve human audit and reconcile a lost receipt without another service effect", async () => {
   const f = fixture();
