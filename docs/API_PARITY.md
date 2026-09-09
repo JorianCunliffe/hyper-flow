@@ -28,7 +28,7 @@ This is an implementation audit, not a claim of complete parity or an OpenAPI re
 
 ## Findings addressed in this release
 
-Service-project setup was available through the Vercel router but absent from Express. Both now call the same tenant-authenticated handler. Reading status previously attached or disabled legacy schedules, which violated read-scoped client authority. Status now reports `upgradeRequired` and `unboundScheduleIds` without writes. The scheduler's existing unbound-project safeguards remain responsible for execution safety. A mailbox lookup failure is exposed as `mailboxStatus: unavailable`, rather than silently represented as an empty healthy list.
+Service-project setup was available through the Vercel router but absent from Express. Both now call the same tenant-authenticated handler. Reading status previously attached or disabled legacy schedules, which violated read-scoped client authority. Status now reports `upgradeRequired` and `unboundScheduleIds` without writes. The scheduler's existing compatibility mode remains unchanged: an enabled legacy schedule with a mailbox connection can still run without a project. Reading status does not pause that routine; use an explicit schedule update to bind or disable it. A mailbox lookup failure is exposed as `mailboxStatus: unavailable`, rather than silently represented as an empty healthy list.
 
 ## Remaining completion work
 
