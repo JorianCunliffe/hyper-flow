@@ -27,6 +27,7 @@ export class HyperFlowClient {
   eraseDatabaseRecords(body:{requestId:string;revision:number;confirmation:'Erase HyperFlow database records';backupReviewed:true}){return this.lifecycleOperation({...body,operation:'erase_database'});}
   exportChunk(dataset:string,revision:number,offset=0){return this.request('GET','/api/tenant',{query:{view:'lifecycle',dataset,revision,offset}});}
   tenant(){return this.request('GET','/api/tenant');}
+  diagnostics(reason:'routine_check'|'support_review'|'incident_review'){return this.request('GET','/api/operations',{query:{view:'diagnostics',reason}});}
   tenantOperation(body:unknown){return this.request('POST','/api/tenant',{body});}
   flowPage(after='',limit=50){return this.request('GET','/api/flows',{query:{shape:'summary',after,limit}});}
   flow(id:string){return this.request('GET','/api/flows',{query:{id}});}

@@ -1,3 +1,4 @@
+import { readDiagnostics } from './lib/tenantControl/diagnostics';
 import { serviceProjectRequest, SERVICE_PROJECT_ROUTES } from './lib/serviceProjectApi.js';
 import { handleLifecycle } from './lib/tenantLifecycle/api';
 import { handleFiles } from './lib/files/api';
@@ -330,13 +331,14 @@ async function startServer() {
   app.get('/api/operations', async (req, res) => {
     try {
       const member = await requireAppMember(req as any);
+      if(req.query.view==='diagnostics')return res.status(200).json(await readDiagnostics(member,req.query.reason));
       const [agentJobs, coachingSessions, externalActions, schedules] = await Promise.all([
         listAgentInboxJobs(member.orgId, 100), listTenantCoachingSessions(member.orgId, 100),
         listExternalActionReceipts(member.orgId, 100), listTenantSchedules(member.orgId)
       ]);
       return res.status(200).json({ agentJobs, coachingSessions, externalActions, schedules });
     } catch (error: any) {
-      return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
+      return res.status(error instanceof ApiAuthError || error instanceof TenantControlError ? error.status : 500).json({ error: error?.message || String(error) });
     }
   });
 

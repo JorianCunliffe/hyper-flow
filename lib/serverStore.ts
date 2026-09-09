@@ -294,6 +294,10 @@ const getServerApp = (lifecycleAdministrator = false) => {
 
 const getDb = () => getDatabase(getServerApp());
 export const getManagedFileBucket = (name?:string) => getStorage(getServerApp()).bucket(name);
+/** Bounded diagnostic sample; never return raw records to a support view. */
+export async function readDiagnosticSample(org:string,root:'agent_inbox_jobs'|'external_action_receipts'|'schedules'|'tenant_files') {
+  return Object.values((await getDb().ref(`${root}/${safeRtdbKey(org)}`).orderByKey().limitToFirst(101).get()).val()||{});
+}
 export async function readManagedFile(org: string, id: string) {
   return (await getDb().ref(`tenant_files/${safeRtdbKey(org)}/${safeRtdbKey(id)}`).get()).val();
 }

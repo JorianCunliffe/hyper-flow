@@ -1,3 +1,5 @@
+import { readDiagnostics } from '../../lib/tenantControl/diagnostics.js';
+import { TenantControlError } from '../../lib/tenantControl/model.js';
 import { handleMemoryContextRequest } from '../../lib/communications/memoryContext.js';
 import { handleMeetingRequest, MeetingRequestError } from '../../lib/communications/meetings.js';
 import { handleCommitments } from '../../lib/commitments/api.js';
@@ -126,6 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (action === 'operations') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+      if (req.query.view === 'diagnostics') return res.status(200).json(await readDiagnostics(member,req.query.reason));
       const [agentJobs, coachingSessions, externalActions, schedules] = await Promise.all([
         listAgentInboxJobs(member.orgId, 100),
         listTenantCoachingSessions(member.orgId, 100),
@@ -209,6 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ connected: false, error: error?.message || 'Communications Service unavailable' });
     }
   } catch (error: any) {
+    if (error instanceof TenantControlError) return res.status(error.status).json({error:error.message});
     if (error instanceof MeetingRequestError) return res.status(error.status).json({error:error.message,details:error.details});
     if (error instanceof CommitmentError) return res.status(error.status).json({ error: error.message });
     return res.status(error instanceof ApiAuthError ? error.status : action === 'email_policy' && error instanceof CommunicationsApiError ? error.status || 503 : threadRegisterErrorStatus(error)).json({ error: error?.message || String(error) });

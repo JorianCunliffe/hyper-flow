@@ -1,5 +1,6 @@
 import { TenantLifecyclePanel } from './TenantLifecyclePanel';
 import { ManagedFilesPanel } from './ManagedFilesPanel';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
 import React, { useEffect, useState } from "react";
 import { firebaseService } from "../services/firebaseService";
 import { API_GROUPS } from "../lib/tenantControl/model";
@@ -338,6 +339,7 @@ export function TenantOperationsPanel() {
         </>
       )}
       <TenantLifecyclePanel />
+      <DiagnosticsPanel onRead={refresh} />
       <ManagedFilesPanel />
     </section>
   );
