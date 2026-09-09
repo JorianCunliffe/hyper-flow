@@ -140,6 +140,7 @@ export function TenantLifecyclePanel() {
         disabled={busy}
         onClick={() => {
           setBusy(true);
+          setError("");
           refresh()
             .catch((e) => setError(e.message))
             .finally(() => setBusy(false));
@@ -161,6 +162,7 @@ export function TenantLifecyclePanel() {
             disabled={busy}
             onClick={() => {
               setBusy(true);
+              setError("");
               request("&service=communications")
                 .then(setCs)
                 .catch((e) => setError(e.message))

@@ -1,3 +1,4 @@
+import { ServiceStatusNotices } from '../ServiceStatusNotices';
 import { MemoryContextPanel } from '../MemoryContextPanel';
 import React, { useEffect, useRef, useState } from 'react';
 import { Settings, X, Plus, Tags, Building, User, CheckCircle2, Type as LucideType, Download, Upload, AlertTriangle, Mail, Phone, Briefcase, RefreshCw, Cloud, CloudOff, Bot, Link2 } from 'lucide-react';
@@ -641,6 +642,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 const workspace = status.workspaces?.find((item: any) => item.id === workspaceId);
                 return <div key={project.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3"><div><h5 className="font-black text-slate-900">{project.name}</h5><p className="text-xs text-slate-500">{project.projectData?.project_template === 'daily_coaching' ? 'Daily Coaching' : 'Email Triage'} · {mailbox?.mailboxAddress || workspace?.accountEmail || 'connection pending'}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${schedule?.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{schedule?.enabled ? 'Active' : 'Paused'}</span></div>
+                  <ServiceStatusNotices status={status} />
                   {status.error ? <p className="mt-3 text-sm text-red-600">{status.error}</p> : <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 md:grid-cols-3"><div><b>Previous run:</b> {status.lastRun ? `${status.lastRun.status} · ${status.lastRun.processedCount ?? 0} processed` : 'none'}</div><div><b>Next run:</b> {schedule ? new Date(schedule.nextRunAt).toLocaleString() : 'not scheduled'}</div><div><b>Scheduler:</b> {status.scheduler?.lastTickAt ? new Date(status.scheduler.lastTickAt).toLocaleString() : 'no tick recorded'}{status.scheduler?.overdue ? ' · OVERDUE' : ''}</div></div>}
                   {status.lastDigest?.summary && <p className="mt-3 line-clamp-2 rounded-lg bg-white p-2 text-xs text-slate-600"><b>Last digest:</b> {status.lastDigest.summary}</p>}
                   {status.scheduler?.warning && <p className="mt-3 text-xs font-bold text-amber-700">{status.scheduler.warning}</p>}

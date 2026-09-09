@@ -27,4 +27,8 @@ export class HyperFlowClient {
   flow(id:string){return this.request('GET','/api/flows',{query:{id}});}
   flowOperation(body:unknown){return this.request('POST','/api/flows',{body});}
   artifactPage(projectId:string,after='',limit=50){return this.request('GET','/api/artifacts',{query:{shape:'summary',projectId,after,limit}});}
+  serviceSetupDraft(id:string){return this.request('GET','/api/service-projects/setup-draft',{query:{id}});}
+  saveServiceSetupDraft(body:unknown){return this.request('PUT','/api/service-projects/setup-draft',{body});}
+  validateServiceSetup(setup:unknown){return this.request('POST','/api/service-projects/validate',{body:{setup}});}
+  serviceProjectStatus(projectId=''){return this.request('GET','/api/service-projects/status',{query:{projectId}});}
 }

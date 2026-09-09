@@ -59,7 +59,7 @@ export const ScreenRecorder: React.FC<ScreenRecorderProps> = ({ taskId, existing
           console.error("Upload failed", error);
           let errMsg = error.message || 'Unknown error';
           if (errMsg.includes('permission')) {
-             errMsg = 'Firebase Storage rules are blocking the upload. Please allow public writes in your Firebase Console, or set up Authentication.';
+             errMsg = 'The recording could not be uploaded with your current access. Ask your administrator to check private storage setup and your account permissions, then retry.';
           } else if (error.name === 'FirebaseError') {
              errMsg = 'Firebase Error: ' + errMsg + '. Note: Ensure you have configured CORS for your storage bucket.';
           }
