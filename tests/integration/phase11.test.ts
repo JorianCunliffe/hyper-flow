@@ -283,6 +283,41 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
     assert.ok(Object.values((await readLifecycle('org_other')).receipts).some(x=>x.operation==='export'));
     await changeDatabaseLifecycle('org_other','other_ceo',{operation:'resume',revision:lifecycle.revision,requestId:'resume_export'});
     assert.equal((await handleWorkspace({method:'GET'},otherActor)).owner,'hyperflow');
+    const {eraseDatabaseRecords, ERASE_CONFIRMATION, ERASED_DATA_ROOTS}=await import('../../lib/tenantLifecycle/store');
+    await env.withSecurityRulesDisabled(async c=>{
+      for(const root of ERASED_DATA_ROOTS) if(root!=='projects') await set(ref(c.database(),`${root}/org_other/erase_fixture`),{status:'completed'});
+      await set(ref(c.database(),'tenant_files/org_other/file_manifest'),{path:'private/object'});
+      await set(ref(c.database(),'invites/erase_owned'),{orgId:'org_other'});
+      await set(ref(c.database(),'invites/keep_other_tenant'),{orgId:member.orgId});
+      await set(ref(c.database(),'agent_inbox_pending/erase_owned'),{orgId:'org_other'});
+      await set(ref(c.database(),'coaching_retry_pending/erase_owned'),{orgId:'org_other'});
+    });
+    const active=await readLifecycle('org_other');
+    const frozen=await changeDatabaseLifecycle('org_other','other_ceo',{operation:'suspend',revision:active.revision,requestId:'suspend_for_erase',communicationsReceipt:receipt});
+    const eraseInput={requestId:'erase_database_fixture',revision:frozen.revision,confirmation:ERASE_CONFIRMATION,backupReviewed:true,communicationsReceipt:{owner:'communications-service' as const,status:'closed',revision:3}};
+    await assert.rejects(eraseDatabaseRecords('org_other','other_ceo',eraseInput),/Export at/);
+    await exportLifecycleChunk('org_other','other_ceo',{dataset:'projects',revision:frozen.revision,offset:0});
+    await assert.rejects(eraseDatabaseRecords('org_other','other_ceo',{...eraseInput,confirmation:'yes'}),/exact/);
+    await assert.rejects(eraseDatabaseRecords('org_other','other_ceo',{...eraseInput,communicationsReceipt:receipt}),/local-erasure/);
+    // Simulate a crashed worker after the lifecycle fence, before deletion.
+    const {transactLifecycle}=await import('../../lib/tenantLifecycle/store');
+    const {beginLifecycle}=await import('../../lib/tenantLifecycle/model');
+    await transactLifecycle('org_other',r=>beginLifecycle(r,{id:eraseInput.requestId,actor:'other_ceo',revision:frozen.revision,operation:'erase_database'}));
+    const erased=await eraseDatabaseRecords('org_other','other_ceo',eraseInput);
+    assert.equal(erased.state,'erased');
+    assert.equal(erased.receipts.erase_database_fixture.status,'completed');
+    assert.equal((await eraseDatabaseRecords('org_other','other_ceo',eraseInput)).revision,erased.revision);
+    await assert.rejects(eraseDatabaseRecords('org_other','other_actor',eraseInput),/identity conflict/);
+    await assert.rejects(changeDatabaseLifecycle('org_other','other_ceo',{operation:'resume',revision:erased.revision,requestId:'resume_erased'}),/cannot be reactivated/);
+    await env.withSecurityRulesDisabled(async c=>{
+      for(const root of ERASED_DATA_ROOTS) assert.equal((await get(ref(c.database(),`${root}/org_other`))).exists(),false,root);
+      assert.equal((await get(ref(c.database(),'tenant_files/org_other/file_manifest'))).exists(),true);
+      assert.equal((await get(ref(c.database(),'invites/erase_owned'))).exists(),false);
+      assert.equal((await get(ref(c.database(),'invites/keep_other_tenant'))).exists(),true);
+      assert.equal((await get(ref(c.database(),`projects/${member.orgId}`))).exists(),true);
+    });
+    await assertFails(set(ref(env.authenticatedContext('other_ceo').database(),'projects/org_other/recreate'),true));
+
     const settings = await controlStore.read(member.orgId);
     await handleTenantControl(
       {

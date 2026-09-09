@@ -8,6 +8,7 @@ import {
   redactTenantExport,
   TENANT_DATA_ROOTS,
   SECRET_ROOTS,
+  TENANT_INDEX_ROOTS,
   type TenantLifecycle,
 } from "./model.js";
 const key = (value: string) => {
@@ -206,4 +207,72 @@ export async function changeDatabaseLifecycle(
     finishLifecycle(r, input.requestId, { blockers: blockers.slice(0, 20) }),
   );
   return current;
+}
+
+export const ERASE_CONFIRMATION = 'Erase HyperFlow database records';
+/** File manifests survive so external objects can still be located and reconciled. */
+export const ERASED_DATA_ROOTS = TENANT_DATA_ROOTS.filter(root => root !== 'tenant_files');
+export async function eraseDatabaseRecords(org: string, actor: string, input: {
+  requestId: string; revision: number; confirmation: string; backupReviewed: boolean;
+  communicationsReceipt: TenantLifecycle['communicationsReceipt'];
+}) {
+  if (process.env.FIREBASE_ENFORCE_TENANT_LIFECYCLE !== 'true')
+    throw new LifecycleError(503, 'Database lifecycle guards are not enabled');
+  if (input.confirmation !== ERASE_CONFIRMATION || input.backupReviewed !== true)
+    throw new LifecycleError(422, 'Review your export and type the exact database-erasure confirmation');
+  if (!/^[a-zA-Z0-9_-]{8,100}$/.test(input.requestId || '') || !Number.isInteger(input.revision) || input.revision < 0)
+    throw new LifecycleError(422, 'Current revision and stable request identity required');
+  if (input.communicationsReceipt?.owner !== 'communications-service' || input.communicationsReceipt.status !== 'closed')
+    throw new LifecycleError(409, 'A current Communications local-erasure receipt is required');
+  let state = await transactLifecycle(org, current => {
+    if (!current.receipts[input.requestId] && !Object.values(current.receipts).some(r =>
+      r.operation === 'export' && r.status === 'completed' && r.revision === current.revision))
+      throw new LifecycleError(409, 'Export at the current suspended revision before erasure');
+    current.communicationsReceipt = input.communicationsReceipt;
+    return beginLifecycle(current, { id: input.requestId, actor, revision: input.revision, operation: 'erase_database' });
+  });
+  if (state.receipts[input.requestId].status !== 'working') return state;
+  const db = getLifecycleDatabase();
+  const updates: Record<string, null> = {};
+  for (const root of ERASED_DATA_ROOTS) updates[`${root}/${key(org)}`] = null;
+  // No normal writer can enter while erasing. Repeatable tombstones make a
+  // crash between batches recoverable without reading another tenant's records.
+  await db.ref().update(updates);
+  for (const root of TENANT_INDEX_ROOTS) {
+    for (let page = 0; ; page++) {
+      if (page >= 20) throw new LifecycleError(503, 'Index cleanup is partially complete; reconcile this operation');
+      const rows = (await db.ref(root).orderByChild('orgId').equalTo(org).limitToFirst(500).get()).val() || {};
+      const ids = Object.keys(rows);
+      if (!ids.length) break;
+      for (const id of ids) {
+        if (rows[id]?.orgId !== org) throw new LifecycleError(503, 'Index ownership changed');
+        // Recheck ownership at commit time: another tenant may have replaced a
+        // shared index key since the query. Never delete its replacement.
+        const reference = db.ref(`${root}/${key(id)}`);
+        let listener = () => {};
+        try {
+          await new Promise<void>((resolve, reject) => {
+            listener = () => resolve();
+            reference.on('value', listener, reject);
+          });
+          await reference.transaction(current => current?.orgId === org ? null : undefined, undefined, false);
+        } finally { reference.off('value', listener); }
+      }
+    }
+  }
+  for (const root of ERASED_DATA_ROOTS) {
+    if ((await db.ref(`${root}/${key(org)}`).get()).exists())
+      throw new LifecycleError(503, 'Database cleanup requires reconciliation');
+  }
+  state = await transactLifecycle(org, current => {
+    const next = finishLifecycle(current, input.requestId, { counts: { clearedDatasetRoots: ERASED_DATA_ROOTS.length } });
+    next.receipts[input.requestId].detail = JSON.stringify({
+      scope: 'HyperFlow business database records',
+      retained: ['tenant_lifecycle', 'tenant_files', 'organization membership', 'Firebase identities'],
+      externalCleanup: 'not performed', backupCleanup: 'not performed',
+      communications: input.communicationsReceipt,
+    });
+    return next;
+  });
+  return state;
 }
