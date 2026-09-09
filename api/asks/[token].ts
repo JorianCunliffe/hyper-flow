@@ -97,7 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         actorVerified: Boolean(authenticated)
       });
       if (!outcome.ok) {
-        await deleteStoredAskAttachments(attachments);
+        await deleteStoredAskAttachments(orgId,attachments);
         const status = outcome.reason === 'already_answered' ? 409
           : outcome.reason === 'ask_not_found' || outcome.reason === 'project_not_found' ? 404
           : 400;

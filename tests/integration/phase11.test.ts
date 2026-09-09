@@ -269,6 +269,34 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
     await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'organizations/org_other/members/other_ceo/role'),'owner'));
     await assert.rejects(lifecycleOwner(member.uid,'org_other'),/administrator/);
     const receipt={owner:'communications-service' as const,status:'suspended',revision:2};
+    // Exercise real upload records/leases with a controlled storage boundary.
+    const {handleFiles,fileDependencies}=await import('../../lib/files/api');
+    const {crc32cUpdate,crc32cBase64}=await import('../../lib/files/crc32c');
+    const fileActor={orgId:'org_other',uid:'other_ceo',role:'owner'};
+    const fileBytes=Buffer.from('Isolated storage receipt');let uploaded=Buffer.alloc(0),lostFileResponse=true;
+    const files={...fileDependencies,enabled:()=>true,provider:{
+      create:async()=> 'https://storage.googleapis.com/upload/storage/v1/fixture?upload_id=secret',
+      progress:async()=>({offset:uploaded.length,...(uploaded.length===fileBytes.length?{object:{generation:'123',size:uploaded.length,crc32c:crc32cBase64(crc32cUpdate(uploaded))}}:{})}),
+      put:async(_file:any,_offset:number,bytes:Buffer)=>{uploaded=Buffer.from(bytes);if(lostFileResponse){lostFileResponse=false;throw new Error('Controlled lost response');}},
+      close:async()=>{uploaded=Buffer.alloc(0);},download:async()=>({url:'https://storage.example/fixture',expiresAt:Date.now()+60000}),
+    }};
+    const fileId='integration_file_01';
+    const fileCall=(body:any)=>handleFiles({method:'POST',body},fileActor,files);
+    const {reserveFileLease}=await import('../../lib/tenantLifecycle/store');
+    await reserveFileLease('org_other','file_upload_orphan_file_01','managed/org_other/orphan_file_01');
+    await fileCall({operation:'delete',id:'orphan_file_01'});
+    assert.equal(Object.keys((await readLifecycle('org_other')).storageLeases).length,0);
+    await assert.rejects(fileCall({operation:'start',id:'orphan_file_01',name:'late.txt',mime:'text/plain',bytes:fileBytes.length,crc32c:crc32cBase64(crc32cUpdate(fileBytes)),visibility:'private'}),/identity conflict/);
+    await fileCall({operation:'start',id:fileId,name:'receipt.txt',mime:'text/plain',bytes:fileBytes.length,crc32c:crc32cBase64(crc32cUpdate(fileBytes)),visibility:'private'});
+    assert.equal(Object.keys((await readLifecycle('org_other')).storageLeases).length,1);
+    await assert.rejects(changeDatabaseLifecycle('org_other','other_ceo',{operation:'suspend',revision:0,requestId:'suspend_during_upload',communicationsReceipt:receipt}),/file operation is still running/);
+    await assertFails(get(ref(env.authenticatedContext('other_ceo').database(),`tenant_files/org_other/${fileId}`)));
+    await assert.rejects(handleFiles({method:'GET',query:{id:fileId}},member,files),/not found/);
+    await assert.rejects(fileCall({operation:'chunk',id:fileId,offset:0,content:fileBytes.toString('base64')}),/unresolved/);
+    assert.equal(Object.keys((await readLifecycle('org_other')).storageLeases).length,1);
+    const reconciled=await fileCall({operation:'reconcile',id:fileId});assert.equal(reconciled.file!.state,'ready');
+    assert.equal(Object.keys((await readLifecycle('org_other')).storageLeases).length,0);
+    await fileCall({operation:'delete',id:fileId});assert.equal((await handleFiles({method:'GET',query:{id:fileId}},fileActor,files)).file!.state,'deleted');
     await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'external_action_receipts/org_other/held'),{status:'uncertain'}));
     let lifecycle=await changeDatabaseLifecycle('org_other','other_ceo',{operation:'suspend',revision:0,requestId:'suspend_blocked',communicationsReceipt:receipt});
     assert.equal(lifecycle.state,'active');assert.equal(lifecycle.receipts.suspend_blocked.status,'blocked');
@@ -281,6 +309,16 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
     await assert.rejects(exportLifecycleChunk('org_other','other_ceo',{dataset:'integration_credentials',revision:lifecycle.revision,offset:0}),/not available/);
     await assert.rejects(exportLifecycleChunk('org_other','other_ceo',{dataset:'projects',revision:0,offset:0}),/suspended revision/);
     assert.ok(Object.values((await readLifecycle('org_other')).receipts).some(x=>x.operation==='export'));
+    const {eraseManagedFiles}=await import('../../lib/files/recovery');
+    process.env.HYPERFLOW_MANAGED_FILES='true';process.env.FIREBASE_STORAGE_BUCKET='controlled-fixture';
+    await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'tenant_files/org_other/managed_file_cleanup'),{id:'managed_file_cleanup',path:'managed/org_other/managed_file_cleanup',actor:'other_ceo',name:'private.txt',mime:'text/plain',bytes:1,crc32c:'AAAAAA==',visibility:'private',createdAt:1,state:'ready',offset:1,generation:'123'}));
+    const cleanupRequest={requestId:'cleanup_files_fixture',revision:lifecycle.revision,confirmation:'Erase HyperFlow stored files',backupReviewed:true};
+    await assert.rejects(eraseManagedFiles('org_other','other_ceo',cleanupRequest,{...files.provider,close:async()=>{throw new Error('Controlled storage outage');}}),/remains pending/);
+    await assert.rejects(changeDatabaseLifecycle('org_other','other_ceo',{operation:'resume',revision:(await readLifecycle('org_other')).revision,requestId:'resume_during_file_cleanup'}),/still working/);
+    lifecycle=await eraseManagedFiles('org_other','other_ceo',cleanupRequest,{...files.provider,close:async file=>{assert.equal(file.path,'managed/org_other/managed_file_cleanup');}});
+    assert.equal(lifecycle.receipts.cleanup_files_fixture.status,'completed');assert.equal(lifecycle.receipts.cleanup_files_fixture.counts?.processed,3);
+    assert.equal((await eraseManagedFiles('org_other','other_ceo',cleanupRequest,files.provider)).revision,lifecycle.revision);
+    await assert.rejects(eraseManagedFiles('org_other','different_actor',cleanupRequest,files.provider),/identity conflict/);
     await changeDatabaseLifecycle('org_other','other_ceo',{operation:'resume',revision:lifecycle.revision,requestId:'resume_export'});
     assert.equal((await handleWorkspace({method:'GET'},otherActor)).owner,'hyperflow');
     const {eraseDatabaseRecords, ERASE_CONFIRMATION, ERASED_DATA_ROOTS}=await import('../../lib/tenantLifecycle/store');

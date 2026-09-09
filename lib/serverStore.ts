@@ -3,6 +3,8 @@ import { getDatabase } from 'firebase-admin/database';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { randomUUID } from 'node:crypto';
+import { crc32cUpdate, crc32cBase64 } from './files/crc32c.js';
+import { FILE_CHUNK_BYTES } from './files/model.js';
 import { CommitmentError, normalizeCommitment } from './commitments/model.js';
 import {
   ActivityLog,
@@ -291,6 +293,25 @@ const getServerApp = (lifecycleAdministrator = false) => {
 };
 
 const getDb = () => getDatabase(getServerApp());
+export const getManagedFileBucket = (name?:string) => getStorage(getServerApp()).bucket(name);
+export async function readManagedFile(org: string, id: string) {
+  return (await getDb().ref(`tenant_files/${safeRtdbKey(org)}/${safeRtdbKey(id)}`).get()).val();
+}
+export async function listManagedFiles(org: string, after: string, limit: number) {
+  let query=getDb().ref(`tenant_files/${safeRtdbKey(org)}`).orderByKey();
+  if(after) query=query.startAfter(safeRtdbKey(after));
+  return Object.values((await query.limitToFirst(limit).get()).val()||{});
+}
+export async function transactManagedFile(org: string, id: string, update: (current: any) => any) {
+  const reference=getDb().ref(`tenant_files/${safeRtdbKey(org)}/${safeRtdbKey(id)}`);
+  let listener=()=>{};
+  try {
+    await new Promise<void>((resolve,reject)=>{listener=()=>resolve();reference.on('value',listener,reject);});
+    const result=await reference.transaction(current=>JSON.parse(JSON.stringify(update(current))),undefined,false);
+    if(!result.committed) throw new Error('File record changed');
+    return result.snapshot.val();
+  } finally {reference.off('value',listener);}
+}
 /** Reserved for the human-owner lifecycle controller; ordinary stores use getDb. */
 export const getLifecycleDatabase = () => getDatabase(getServerApp(true));
 
@@ -743,24 +764,24 @@ export const storeAskUploads = async (input: {
   allowedFields: string[];
   uploads: AskUploadInput[];
 }): Promise<Attachment[]> => {
-  if (!process.env.FIREBASE_STORAGE_BUCKET) throw new Error('FIREBASE_STORAGE_BUCKET is required for Ask uploads');
   if (!Array.isArray(input.uploads) || input.uploads.length > 3) throw new Error('At most three files may be uploaded');
-  const bucket = getStorage(getServerApp()).bucket();
+  if(JSON.stringify(input.uploads).length>3800000)throw new Error('Combined upload payload must be smaller than 3.8 MB');
+  const {handleFiles}=await import('./files/api.js');
+  const member={orgId:input.orgId,uid:`ask_${input.askId}`,role:'member'};
+  const base=new URL(process.env.PUBLIC_BASE_URL||'');
+  if(base.protocol!=='https:')throw new Error('PUBLIC_BASE_URL must use HTTPS');
   const attachments: Attachment[] = [];
-  const storedFiles: Array<{ delete: () => Promise<unknown> }> = [];
+  const started: string[]=[];
   try {
     for (const upload of input.uploads) {
       const valid = validateAskUpload(upload, input.allowedFields);
       const id = `attachment_${randomUUID().replace(/-/g, '')}`;
-      const storagePath = `ask_uploads/${safeRtdbKey(input.orgId)}/${safeRtdbKey(input.projectId)}/${safeRtdbKey(input.askId)}/${id}/${valid.name}`;
-      const file = bucket.file(storagePath);
-      await file.save(valid.bytes, {
-        resumable: false,
-        validation: 'crc32c',
-        metadata: { contentType: valid.mime, contentDisposition: `attachment; filename="${valid.name.replace(/"/g, '')}"` }
-      });
-      storedFiles.push(file);
-      const [url] = await file.getSignedUrl({ action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000, version: 'v4' });
+      started.push(id);
+      await handleFiles({method:'POST',body:{operation:'start',id,name:valid.name,mime:valid.mime,bytes:valid.bytes.length,crc32c:crc32cBase64(crc32cUpdate(valid.bytes)),visibility:'organization'}},member);
+      for(let offset=0;offset<valid.bytes.length;offset+=FILE_CHUNK_BYTES)
+        await handleFiles({method:'POST',body:{operation:'chunk',id,offset,content:valid.bytes.subarray(offset,offset+FILE_CHUNK_BYTES).toString('base64')}},member);
+      const storagePath=`managed/${encodeURIComponent(input.orgId)}/${id}`;
+      const url=new URL('/?file='+encodeURIComponent(id),base).href;
       const kind: Attachment['kind'] = valid.mime.startsWith('image/') ? 'image' : 'document';
       attachments.push({
         id, url, storagePath, name: valid.name, mime: valid.mime, bytes: valid.bytes.length,
@@ -768,18 +789,23 @@ export const storeAskUploads = async (input: {
       });
     }
   } catch (error) {
-    await Promise.allSettled(storedFiles.map(file => file.delete()));
+    // Uncertain cleanup remains recorded and leased; do not silently release it.
+    const cleanup=await Promise.allSettled(started.map(id=>handleFiles({method:'POST',body:{operation:'delete',id}},member)));
+    if(cleanup.some(result=>result.status==='rejected'))throw new Error('Ask upload failed; unfinished file cleanup is recorded in Files for administrator review');
     throw error;
   }
   return attachments;
 };
 
-export const deleteStoredAskAttachments = async (attachments: Attachment[]): Promise<void> => {
-  if (!attachments.length || !process.env.FIREBASE_STORAGE_BUCKET) return;
-  const bucket = getStorage(getServerApp()).bucket();
-  await Promise.allSettled(attachments
-    .filter(attachment => attachment.storagePath?.startsWith('ask_uploads/'))
-    .map(attachment => bucket.file(attachment.storagePath!).delete()));
+export const deleteStoredAskAttachments = async (orgId:string, attachments: Attachment[]): Promise<void> => {
+  if(!attachments.length)return;
+  const {handleFiles}=await import('./files/api.js');
+  for(const attachment of attachments){
+    if(attachment.storagePath!==`managed/${encodeURIComponent(orgId)}/${attachment.id}`)throw new Error('Attachment cleanup tenant mismatch');
+    const file=await readManagedFile(orgId,attachment.id);
+    if(!file)throw new Error('Attachment cleanup receipt is missing');
+    await handleFiles({method:'POST',body:{operation:'delete',id:attachment.id}},{orgId,uid:file.actor,role:'member'});
+  }
 };
 
 const externalEventRef = (orgId: string, eventId: string) => {

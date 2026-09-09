@@ -132,7 +132,7 @@
       },
       "post": {
         "operationId": "changeHyperFlowTenantControls",
-        "description": "With view=lifecycle, current human owners or administrators may request suspend/resume using requestId and revision. service=communications forwards those commands with a human audit journal and returns the Communications-owned receipt. Without service, only HyperFlow database state changes and enabled runtime guards are required. Suspension independently reads Communications suspension state. erase_database additionally requires confirmation=\"Erase HyperFlow database records\", backupReviewed=true, a recorded export at the current suspended revision, and independently verified Communications status closed. Retry an interrupted erasure with the original requestId; never invent a replacement. Successful erasure is irreversible via Resume. File manifests, identities, membership, recovery audit, provider resources and backups are retained. Communications erasure requires separate authority and is not forwarded by this endpoint.",
+        "description": "With view=lifecycle, current human owners or administrators may request suspend/resume using requestId and revision. service=communications forwards those commands with a human audit journal and returns the Communications-owned receipt. Without service, only HyperFlow database state changes and enabled runtime guards are required. Suspension independently reads Communications suspension state. erase_database additionally requires confirmation=\"Erase HyperFlow database records\", backupReviewed=true, a recorded export at the current suspended revision, and independently verified Communications status closed. Retry an interrupted erasure with the original requestId; never invent a replacement. Successful erasure is irreversible via Resume. File manifests, identities, membership, recovery audit, provider resources and backups are retained. Communications erasure requires separate authority and is not forwarded by this endpoint. erase_managed_files is a separate human-administrator operation at a suspended or database-erased revision. It requires requestId, revision, confirmation=\"Erase HyperFlow stored files\" and backupReviewed=true; processes25 manifests per request; replay continues the same operation. File receipts, provider backups/versions and unmanaged objects remain.",
         "security": [
           {
             "Bearer": []
@@ -1242,6 +1242,253 @@
           }
         ]
       }
+    },
+    "/api/files": {
+      "get": {
+        "operationId": "readManagedFiles",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Current tenant and files:read for API clients. Without id, returns items/next; default25 and maximum100. Invisible entries still advance pagination. With id returns file; download=1 adds a generation-specific bearer url and expiresAt, valid for60 seconds. Only author sees private files; current members see organization files. Requires active tenant and enabled private storage.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{8,100}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{8,100}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "in": "query",
+            "name": "download",
+            "schema": {
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HyperFlow-owned file metadata/page, progress receipt or 60-second private download link. File cleanup retains receipts and provider backups."
+          },
+          "401": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "changeManagedFile",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "description": "Current tenant and files:write for API clients. Start binds a stable ID to author and descriptor. Chunk/reconcile require that author; altered retries conflict. Delete requires author or organization administrator and leaves a durable receipt. Administrator deletion never reveals private file metadata. Provider uncertainty remains pending. Account changes and disabled storage fail closed. No automatic write retries.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/FileStart"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FileChunk"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FileControl"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "HyperFlow-owned file metadata/page, progress receipt or 60-second private download link. File cleanup retains receipts and provider backups."
+          },
+          "401": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request rejected or unresolved; preserve the original identity for reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1261,6 +1508,174 @@
         "properties": {
           "error": {
             "type": "string"
+          }
+        }
+      },
+      "ManagedFile": {
+        "type": "object",
+        "description": "HyperFlow file metadata. The API omits bucket, object path, session credentials and chunk fingerprints. Administrator cancellation of a private file returns only an ID/state/deletion receipt.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{8,100}$"
+          },
+          "owner": {
+            "const": "hyperflow"
+          },
+          "name": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "visibility": {
+            "enum": [
+              "private",
+              "organization"
+            ]
+          },
+          "state": {
+            "enum": [
+              "initializing",
+              "uploading",
+              "ready",
+              "deleting",
+              "deleted"
+            ]
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "crc32c": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Stable authenticated HyperFlow file page"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "completedAt": {
+            "type": "integer"
+          },
+          "deletedAt": {
+            "type": "integer"
+          },
+          "deletedBy": {
+            "type": "string"
+          },
+          "pending": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "offset": {
+                "type": "integer"
+              },
+              "bytes": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "FileStart": {
+        "type": "object",
+        "required": [
+          "operation",
+          "id",
+          "name",
+          "mime",
+          "bytes",
+          "crc32c",
+          "visibility"
+        ],
+        "properties": {
+          "operation": {
+            "const": "start"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{8,100}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "mime": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 268435456
+          },
+          "crc32c": {
+            "type": "string",
+            "description": "Base64 big-endian CRC32C"
+          },
+          "visibility": {
+            "enum": [
+              "private",
+              "organization"
+            ]
+          }
+        }
+      },
+      "FileChunk": {
+        "type": "object",
+        "required": [
+          "operation",
+          "id",
+          "offset",
+          "content"
+        ],
+        "properties": {
+          "operation": {
+            "const": "chunk"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{8,100}$"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "multipleOf": 1048576
+          },
+          "content": {
+            "type": "string",
+            "contentEncoding": "base64",
+            "maxLength": 1398104,
+            "description": "1MiB decoded bytes, except the final chunk"
+          }
+        }
+      },
+      "FileControl": {
+        "type": "object",
+        "required": [
+          "operation",
+          "id"
+        ],
+        "properties": {
+          "operation": {
+            "enum": [
+              "reconcile",
+              "delete"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{8,100}$"
           }
         }
       }

@@ -3,6 +3,8 @@ import {
   CommunicationsConfigurationError,
 } from "../communications/errors.js";
 import { requireFirebaseIdentity } from "../apiAuth.js";
+import {eraseManagedFiles} from '../files/recovery.js';
+import {FileError} from '../files/model.js';
 import { HttpCommunicationsClient } from "../communications/client.js";
 import {
   lifecycleOwner,
@@ -22,6 +24,7 @@ export const lifecycleDependencies = {
   eraseDatabaseRecords,
   transactLifecycle,
   communications: () => new HttpCommunicationsClient(),
+  eraseManagedFiles,
 };
 async function executeLifecycle(
   req: {
@@ -57,10 +60,11 @@ async function executeLifecycle(
       owner: "hyperflow",
       databaseGuardsEnabled:
         process.env.FIREBASE_ENFORCE_TENANT_LIFECYCLE === "true",
+      managedFilesEnabled:process.env.HYPERFLOW_MANAGED_FILES==='true'&&!!process.env.FIREBASE_STORAGE_BUCKET,
       scope: "HyperFlow database only",
       lifecycle: await readLifecycle(owner.orgId),
       datasets: TENANT_DATA_ROOTS.filter((x) => !SECRET_ROOTS.has(x)),
-      files: "Separate storage lifecycle; not included",
+      files: "Managed files have separate cleanup receipts. Portable export excludes file contents.",
       communications: "Separate service and receipts",
       erasure: "Human administrator database erasure after suspended export and Communications local erasure; files and identities retained",
       retention: "Manual review; no automatic deletion policy",
@@ -136,6 +140,7 @@ async function executeLifecycle(
     });
     return result;
   }
+  if(body.operation==='erase_managed_files')return{owner:'hyperflow',scope:'Managed file objects only',lifecycle:await deps.eraseManagedFiles(owner.orgId,owner.uid,body),retained:'File manifests, recovery audit and provider backups/soft-deleted versions; unmanaged objects require separate review'};
   if (body.operation === 'erase_database') {
     const observed = await deps.communications().readTenantLifecycle(owner.orgId);
     if (observed.owner !== 'communications-service' || observed.tenant?.status !== 'closed')
@@ -153,7 +158,7 @@ async function executeLifecycle(
   if (!["suspend", "resume"].includes(body.operation))
     throw new LifecycleError(
       422,
-      "Supported database operations are suspend, resume and erase_database",
+      "Supported operations are suspend, resume, erase_database and erase_managed_files",
     );
   let receipt;
   if (body.operation === "suspend") {
@@ -195,6 +200,7 @@ export async function handleLifecycle(
   try {
     return await executeLifecycle(req, deps);
   } catch (error) {
+    if(error instanceof FileError)throw new LifecycleError(error.status,error.message);
     if (error instanceof CommunicationsApiError)
       throw new LifecycleError(
         error.status && error.status < 500 ? error.status : 502,

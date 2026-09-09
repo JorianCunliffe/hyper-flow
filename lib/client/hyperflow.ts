@@ -17,6 +17,10 @@ export class HyperFlowClient {
     const body=await response.json();if(!response.ok)throw new HyperFlowApiError(response.status,body.error||'HyperFlow request failed');return body;
   }
   workspace(){return this.request('GET','/api/workspace');}
+  filePage(after='',limit=25){return this.request('GET','/api/files',{query:{after,limit}});}
+  file(id:string){return this.request('GET','/api/files',{query:{id}});}
+  fileDownload(id:string){return this.request('GET','/api/files',{query:{id,download:'1'}});}
+  fileOperation(body:unknown){return this.request('POST','/api/files',{body});}
   replaceWorkspace(expectedRevision:number,data:unknown){return this.request('PUT','/api/workspace',{body:{expectedRevision,data}});}
   lifecycle(service?:'communications'){return this.request('GET','/api/tenant',{query:{view:'lifecycle',...(service?{service}:{})}});}
   lifecycleOperation(body:unknown){return this.request('POST','/api/tenant',{query:{view:'lifecycle'},body});}

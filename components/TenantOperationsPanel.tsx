@@ -1,4 +1,5 @@
 import { TenantLifecyclePanel } from './TenantLifecyclePanel';
+import { ManagedFilesPanel } from './ManagedFilesPanel';
 import React, { useEffect, useState } from "react";
 import { firebaseService } from "../services/firebaseService";
 import { API_GROUPS } from "../lib/tenantControl/model";
@@ -337,6 +338,7 @@ export function TenantOperationsPanel() {
         </>
       )}
       <TenantLifecyclePanel />
+      <ManagedFilesPanel />
     </section>
   );
 }

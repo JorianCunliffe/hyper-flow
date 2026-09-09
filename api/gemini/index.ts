@@ -1,4 +1,6 @@
 import { handleLifecycle } from '../../lib/tenantLifecycle/api.js';
+import { handleFiles } from '../../lib/files/api.js';
+import { FileError } from '../../lib/files/model.js';
 import { LifecycleError } from '../../lib/tenantLifecycle/model.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -84,6 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const action = typeof req.query.action === 'string' ? req.query.action : '';
     if (action === 'tenant' && req.query.view === 'lifecycle') return res.status(200).json(await handleLifecycle(req));
     const member = await requireAppMember(req);
+    if (action === 'files') return res.status(200).json(await handleFiles(req,member));
     if (action === 'tenant') return res.status(200).json(await handleTenantControl(req,member));
     if (action === 'workspace') return res.status(200).json(await handleWorkspace(req,member));
     if (action === 'flows') return res.status(200).json(publicFlowResponse(await handleVisibleFlows(req,member)));
@@ -97,6 +100,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: 'Unknown Gemini operation' });
   } catch (error: any) {
     console.error(error);
-    return res.status(error instanceof LifecycleError || error instanceof ApiAuthError || error instanceof TenantControlError || error instanceof FlowError || error instanceof CalendarError || error instanceof ArtifactError || error instanceof PublishingError ? error.status : 500).json({ error: error?.message || String(error) });
+    return res.status(error instanceof FileError || error instanceof LifecycleError || error instanceof ApiAuthError || error instanceof TenantControlError || error instanceof FlowError || error instanceof CalendarError || error instanceof ArtifactError || error instanceof PublishingError ? error.status : 500).json({ error: error?.message || String(error) });
   }
 }

@@ -1,4 +1,5 @@
 import { TenantLifecyclePanel } from './components/TenantLifecyclePanel';
+import { ManagedFilesPanel } from './components/ManagedFilesPanel';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import html2canvas from 'html2canvas';
 import {
@@ -2110,6 +2111,9 @@ export const App: React.FC = () => {
       );
     }
   }
+
+  const fileQuery=new URLSearchParams(window.location.search);
+  if(currentUser&&currentOrgId&&(fileQuery.has('file')||fileQuery.has('files')))return <main className="max-w-3xl mx-auto p-6"><a href="/">Return to HyperFlow</a><ManagedFilesPanel key={currentOrgId} initialId={fileQuery.get('file')||undefined}/></main>;
 
   // Loading Screen
   if (!isDataLoaded && firebaseService.isConfigured()) {

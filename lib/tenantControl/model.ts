@@ -8,6 +8,7 @@ export class TenantControlError extends Error {
 }
 export const API_GROUPS = [
   "workspace",
+  "files",
   "flows",
   "cockpit",
   "commitments",

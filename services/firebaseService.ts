@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref as dbRef, onValue, get, runTransaction } from 'firebase/database';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { uploadManagedFile } from './managedFiles';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { Project, AppSettings, ScratchTask, ActivityLog } from '../types';
 import { projectCollectionsShareRevisions } from '../lib/projectRevisionGuard';
@@ -67,7 +67,6 @@ const buildEnvConfig = () => {
 const DEFAULT_CONFIG = buildEnvConfig() || BUILTIN_CONFIG;
 
 let db: any = null;
-let storage: any = null;
 let auth: any = null;
 let currentUser: User | null = null;
 let currentOrgId: string | null = null;
@@ -138,7 +137,6 @@ try {
     if (config && config.databaseURL) {
       const app = initializeApp(config);
       db = getDatabase(app);
-      storage = getStorage(app);
       auth = getAuth(app);
       isConfigured = true;
 
@@ -423,26 +421,22 @@ export const firebaseService = {
   },
 
   uploadFile: async (file: Blob, name: string): Promise<string | null> => {
-    if (!storage) {
-      console.warn("Storage not initialized.");
-      return null;
-    }
     if (!currentUser || !currentOrgId) return null;
-    const fileRef = storageRef(storage, `organizations/${currentOrgId}/files/${name}`);
-    await uploadBytes(fileRef, file);
-    return await getDownloadURL(fileRef);
+    const uid=currentUser.uid,org=currentOrgId;
+    const result=await uploadManagedFile(file,name,{visibility:'organization',
+      checkIdentity:()=>{if(currentUser?.uid!==uid||currentOrgId!==org)throw new Error('Account changed; upload stopped. Reconcile it in Files.');},
+      request:async(query,body)=>{
+        const response=await firebaseService.authorizedFetch('/api/files'+query,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const data=await response.json();if(!response.ok)throw new Error((data.error||'Upload failed')+' Open Files to reconcile any unfinished upload.');return data;
+      },
+    });
+    return new URL(result.url,location.origin).href;
   },
 
   uploadRecording: async (file: Blob, subtaskId: string): Promise<string | null> => {
-    if (!storage) {
-      console.warn("Storage not initialized.");
-      return null;
-    }
     const ext = file.type.includes('video') ? 'webm' : (file.type.includes('audio') ? 'webm' : 'bin');
     const timestamp = Date.now();
     if (!currentUser || !currentOrgId) return null;
-    const fileRef = storageRef(storage, `organizations/${currentOrgId}/recordings/${subtaskId}_${timestamp}.${ext}`);
-    await uploadBytes(fileRef, file);
-    return await getDownloadURL(fileRef);
+    return firebaseService.uploadFile(file,`${subtaskId}_${timestamp}.${ext}`);
   }
 };

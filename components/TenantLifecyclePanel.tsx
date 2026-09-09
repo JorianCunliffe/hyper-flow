@@ -19,6 +19,7 @@ async function request(query = "", body?: any) {
 }
 export function TenantLifecyclePanel() {
   const [eraseText, setEraseText] = useState('');
+  const [eraseFilesText,setEraseFilesText]=useState('');
   const [backupReviewed, setBackupReviewed] = useState(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -156,6 +157,18 @@ export function TenantLifecyclePanel() {
             HyperFlow: {data.lifecycle.state} · revision{" "}
             {data.lifecycle.revision}
           </p>
+          {Object.entries<any>(data.lifecycle.storageLeases||{}).map(([id,lease])=><div key={id} className="border p-2">
+            <p>Unfinished file operation: {id} · started {new Date(lease.at).toLocaleString()}</p>
+            <button className={button} disabled={busy} onClick={async()=>{
+              if(!window.confirm('Cancel this upload and remove its stored file? Its receipt and provider backups remain.'))return;
+              setBusy(true);setError('');
+              try{
+                const fileId=String(lease.path).split('/').at(-1);
+                const response=await firebaseService.authorizedFetch('/api/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation:'delete',id:fileId})});
+                const result=await response.json();if(!response.ok)throw new Error(result.error||'File cleanup remains pending');await refresh();
+              }catch(e:any){setError(e.message);}finally{setBusy(false);}
+            }}>Cancel unfinished file operation</button>
+          </div>)}
           {!data.databaseGuardsEnabled && (
             <p>Database suspension is not enabled on this deployment.</p>
           )}
@@ -231,6 +244,7 @@ export function TenantLifecyclePanel() {
                           revision: data.lifecycle.revision,
                           requestId: r.id,
                           ...(r.operation === 'erase_database' ? { confirmation: 'Erase HyperFlow database records', backupReviewed: true } : {}),
+                          ...(r.operation === 'erase_managed_files' ? { confirmation: 'Erase HyperFlow stored files', backupReviewed: true } : {}),
                         }),
                 );
               }}
@@ -268,6 +282,13 @@ export function TenantLifecyclePanel() {
             <label className="block">Type “Erase HyperFlow database records”<input className="block border p-2" value={eraseText} onChange={e => setEraseText(e.target.value)} /></label>
             <button className={button} disabled={busy || !!pending || !data.databaseGuardsEnabled || !backupReviewed || eraseText !== 'Erase HyperFlow database records' || cs?.tenant?.status !== 'closed'}
               onClick={() => void command({ operation: 'erase_database', requestId: crypto.randomUUID(), revision: data.lifecycle.revision, confirmation: eraseText, backupReviewed })}>Permanently erase database records</button>
+          </fieldset>}
+          {['suspended','erased'].includes(data.lifecycle.state)&&data.managedFilesEnabled&&<fieldset className="border rounded p-3 space-y-2">
+            <legend>Erase managed file objects</legend>
+            <p>Download and check the files you need before suspending the account. This removes managed file objects and keeps their receipts. Provider backups, older versions and any unmanaged objects remain separate.</p>
+            <label className="block"><input type="checkbox" checked={backupReviewed} onChange={e=>setBackupReviewed(e.target.checked)}/> I have retained and checked the files I need.</label>
+            <label className="block">Type “Erase HyperFlow stored files”<input className="block border p-2" value={eraseFilesText} onChange={e=>setEraseFilesText(e.target.value)}/></label>
+            <button className={button} disabled={busy||!!pending||!!working||!backupReviewed||eraseFilesText!=='Erase HyperFlow stored files'} onClick={()=>void command({operation:'erase_managed_files',requestId:crypto.randomUUID(),revision:data.lifecycle.revision,confirmation:eraseFilesText,backupReviewed})}>Permanently erase managed file objects</button>
           </fieldset>}
           {Object.values<any>(data.lifecycle.receipts || {})
             .sort((a, b) => b.at - a.at)

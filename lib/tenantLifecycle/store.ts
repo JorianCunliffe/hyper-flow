@@ -81,7 +81,7 @@ export async function exportLifecycleChunk(
   )
     throw new LifecycleError(422, "Current revision and byte offset required");
   const current = await readLifecycle(org);
-  if (current.state !== "suspended" || current.revision !== input.revision)
+  if (current.state !== "suspended" || current.revision !== input.revision || current.activeOperation)
     throw new LifecycleError(409, "Current suspended revision required");
   const data = (
     await getLifecycleDatabase()
@@ -110,7 +110,7 @@ export async function exportLifecycleChunk(
     communications: "separate export",
   };
   await transactLifecycle(org, (r) => {
-    if (r.state !== "suspended" || r.revision !== input.revision)
+    if (r.state !== "suspended" || r.revision !== input.revision || r.activeOperation)
       throw new LifecycleError(409, "Tenant changed during export");
     if (Object.keys(r.receipts).length >= 1000)
       throw new LifecycleError(409, "Export history requires retention review");
@@ -210,6 +210,23 @@ export async function changeDatabaseLifecycle(
 }
 
 export const ERASE_CONFIRMATION = 'Erase HyperFlow database records';
+/** Admission fence for managed uploads; unresolved leases never expire implicitly. */
+export async function reserveFileLease(org: string, id: string, path: string) {
+  if(process.env.FIREBASE_ENFORCE_TENANT_LIFECYCLE !== 'true') throw new LifecycleError(503,'File lifecycle guards are not enabled');
+  await transactLifecycle(org,r=>{
+    if(r.state!=='active'||r.activeOperation) throw new LifecycleError(409,'Account activity is paused');
+    const prior=r.storageLeases[id];
+    if(prior && prior.path!==path) throw new LifecycleError(409,'File operation identity conflict');
+    if(!prior && Object.keys(r.storageLeases).length>=25) throw new LifecycleError(409,'Reconcile unfinished uploads before starting more');
+    r.storageLeases[id]=prior||{at:Date.now(),path};return r;
+  });
+}
+export async function releaseFileLease(org: string, id: string, path: string) {
+  await transactLifecycle(org,r=>{
+    if(r.storageLeases[id]?.path===path) delete r.storageLeases[id];
+    return r;
+  });
+}
 /** File manifests survive so external objects can still be located and reconciled. */
 export const ERASED_DATA_ROOTS = TENANT_DATA_ROOTS.filter(root => root !== 'tenant_files');
 export async function eraseDatabaseRecords(org: string, actor: string, input: {
