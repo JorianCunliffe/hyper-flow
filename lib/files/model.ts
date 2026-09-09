@@ -92,10 +92,12 @@ export function visibleFile(file: ManagedFile, actor: string) {
   return file.visibility === "organization" || file.actor === actor;
 }
 export function publicFile(file: ManagedFile) {
-  const { sessionSecret, pending, path, chunks, bucket, ...result } = file;
   return {
-    ...result,
-    pending: pending ? { offset: pending.offset, bytes: pending.bytes } : null,
+    id:file.id, actor:file.actor, name:file.name, mime:file.mime, bytes:file.bytes,
+    crc32c:file.crc32c, visibility:file.visibility, state:file.state, offset:file.offset,
+    generation:file.generation, createdAt:file.createdAt, completedAt:file.completedAt,
+    deletedAt:file.deletedAt, deletedBy:file.deletedBy,
+    pending: file.pending ? { offset: file.pending.offset, bytes: file.pending.bytes } : null,
     owner: "hyperflow" as const,
     url: `/?file=${encodeURIComponent(file.id)}`,
   };

@@ -1,4 +1,5 @@
 import test from "node:test";
+import {readFileSync} from 'node:fs';
 import assert from "node:assert/strict";
 import { handleFiles, fileDependencies } from "../lib/files/api";
 import {
@@ -10,6 +11,13 @@ import { crc32cUpdate, crc32cBase64 } from "../lib/files/crc32c";
 import { lifecycleRecord, beginLifecycle } from "../lib/tenantLifecycle/model";
 import { requestScope } from "../lib/tenantControl/clients";
 import { uploadManagedFile } from "../services/managedFiles";
+test('managed file contract is routed and scoped in both deployments',()=>{
+  const config=JSON.parse(readFileSync('vercel.json','utf8'));
+  const target=config.rewrites.find((r:any)=>r.source==='/api/files')?.destination;
+  assert.equal(target,'/api/gemini?action=files');
+  assert.match(readFileSync('server.ts','utf8'),/app\.all\('\/api\/files'/);
+  assert.ok(JSON.parse(readFileSync('contracts/phase11.openapi.json','utf8')).paths['/api/files']);
+});
 function fixture() {
   const rows = new Map<string, ManagedFile>(),
     leases = new Set<string>(),
