@@ -800,7 +800,7 @@ export const storeAskUploads = async (input: {
       const url=new URL('/?file='+encodeURIComponent(id),base).href;
       const kind: Attachment['kind'] = valid.mime.startsWith('image/') ? 'image' : 'document';
       attachments.push({
-        id, url, storagePath, name: valid.name, mime: valid.mime, bytes: valid.bytes.length,
+        id, field: valid.field, url, storagePath, name: valid.name, mime: valid.mime, bytes: valid.bytes.length,
         kind, source: 'web', capturedAt: Date.now()
       });
     }

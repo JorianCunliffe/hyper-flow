@@ -567,6 +567,8 @@ export interface AskField {
 
 export interface Attachment {
   id: string;
+  /** Declared Ask upload field; set by the validated upload adapter. */
+  field?: string;
   url: string;
   storagePath?: string;
   name?: string;

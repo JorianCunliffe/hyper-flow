@@ -286,10 +286,14 @@ export const recordAskResponse = (ask: HumanAsk, response: HumanResponse): Human
     return distinctApprovers >= required ? { ...merged, status: 'answered', answeredAt: response.at } : merged;
   }
 
-  const required = (ask.fields || []).filter(f => f.required).map(f => f.name);
+  const required = (ask.fields || []).filter(f => f.required);
   if (required.length > 0) {
     const supplied = { ...collectValues(merged) };
-    const hasAll = required.every(n => supplied[n] !== undefined && supplied[n] !== null && supplied[n] !== '');
+    const fileFields=(ask.fields||[]).filter(f=>f.type==='file');
+    const attachments=responses.filter(r=>!r.needsInterpretation).flatMap(r=>arr<Attachment>(r.attachments));
+    const hasAll = required.every(f => f.type==='file'
+      ? attachments.some(a=>Boolean(a.id&&a.url)&&(a.field===f.name||(!a.field&&fileFields.length===1)))
+      : supplied[f.name] !== undefined && supplied[f.name] !== null && supplied[f.name] !== '');
     if (hasAll) return { ...merged, status: 'answered', answeredAt: response.at };
     return merged;
   }
