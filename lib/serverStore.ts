@@ -1305,19 +1305,29 @@ export const enqueueAgentInboxJob = async (
   return job;
 };
 
-export const claimAgentInboxJobs = async (limit = 10, now = Date.now()): Promise<AgentInboxJob[]> => {
+export const claimAgentInboxJobs = async (limit = 10, now = Date.now(), target?: {orgId: string; jobId: string}): Promise<AgentInboxJob[]> => {
   const max = Math.min(Math.max(limit, 1), 25);
-  const pending = await getDb().ref('agent_inbox_pending')
+  const pending = target ? await agentInboxIndexRef(target.orgId,target.jobId).get() : await getDb().ref('agent_inbox_pending')
     .orderByChild('availableAt').endAt(now).limitToFirst(max * 3).get();
   if (!pending.exists()) return [];
-  const candidates = Object.values<any>(pending.val() || {})
+  const candidates = (target ? [pending.val()] : Object.values<any>(pending.val() || {}))
+    .filter(candidate => Number(candidate.availableAt || 0) <= now)
     .sort((a, b) => Number(a.availableAt || 0) - Number(b.availableAt || 0))
     .slice(0, max);
   const claimed: AgentInboxJob[] = [];
   for (const candidate of candidates) {
     const orgId = String(candidate.orgId);
     const jobId = String(candidate.jobId);
-    const result = await agentInboxJobRef(orgId, jobId).transaction(current => {
+    const jobRef = agentInboxJobRef(orgId, jobId);
+    const keepCurrent = () => {};
+    let result;
+    try {
+      // Keep the authoritative job cached while a cold worker claims it.
+      await new Promise<void>((resolve, reject) => {
+        jobRef.on('value', keepCurrent, reject);
+        jobRef.once('value', () => resolve(), reject);
+      });
+      result = await jobRef.transaction(current => {
       if (!current) return undefined;
       const recoverable = current.status === 'pending' || current.status === 'failed' ||
         (current.status === 'processing' && Number(current.leaseExpiresAt || 0) <= now);
@@ -1332,15 +1342,17 @@ export const claimAgentInboxJobs = async (limit = 10, now = Date.now()): Promise
         error: null
       };
     });
+    } finally {
+      jobRef.off('value', keepCurrent);
+    }
     if (result.committed) {
       const job = result.snapshot.val() as AgentInboxJob;
       claimed.push(job);
       await agentInboxIndexRef(orgId, jobId).set({
         orgId, jobId, availableAt: job.leaseExpiresAt, createdAt: job.createdAt
       });
-    } else {
-      await agentInboxIndexRef(orgId, jobId).remove();
     }
+    // A competing worker may own the lease; retain its recovery index.
   }
   return claimed;
 };

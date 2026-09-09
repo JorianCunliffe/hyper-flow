@@ -30,6 +30,7 @@ import { GoogleGenAI, Type, Modality, LiveServerMessage } from "@google/genai";
 import { executeTask } from "./lib/executeTask";
 import { advanceServerFlow, readAskByToken, respondToAsk } from "./lib/serverFlow";
 import { externalEventHttpStatus, receiveExternalEvent } from "./lib/externalEvents";
+import { processAgentInbox } from "./lib/agentRouter";
 import { parseSignedJsonBody, verifyCommunicationsSignatureV2, verifyIncomingCommunicationsSignature } from "./lib/communications/webhook";
 import { createCommunicationsClient } from "./lib/communications/client";
 import { accountEmailPolicy } from "./lib/communications/accountEmailPolicy";
@@ -104,7 +105,12 @@ async function startServer() {
 
     try {
       const body = parseSignedJsonBody(rawBody);
-      const outcome = await receiveExternalEvent({ ...body, source: body.source || 'communications' });
+        const outcome = await receiveExternalEvent({ ...body, source: body.source || 'communications' });
+        if (outcome.ok && outcome.reason === 'agent_job_queued') {
+          const orgId=String(body.tenant_id || body.correlation?.tenant_id || '');
+          const jobId=String(body.communication_id || '');
+          if (orgId && jobId) void processAgentInbox(1,{orgId,jobId}).catch(error=>console.error('Immediate agent inbox processing failed',{orgId,jobId,error:error?.message}));
+        }
       return res.status(externalEventHttpStatus(outcome)).json(outcome);
     } catch (error: any) {
       if (/required|JSON object|valid JSON/.test(error?.message || '')) return res.status(400).json({ error: error.message });

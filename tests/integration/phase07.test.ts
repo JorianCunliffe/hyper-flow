@@ -48,6 +48,9 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
     saveTenantAgentProfile,
     claimContactDispatch,
     listOperationalCommitments,
+    enqueueAgentInboxJob,
+    claimAgentInboxJobs,
+    finishAgentInboxJob,
   } = await import("../../lib/serverStore");
   const { getApps, deleteApp } = await import("firebase-admin/app");
   const env = await initializeTestEnvironment({
@@ -278,11 +281,26 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
       const response=await fetch(address+'/v1/communications',{method:'POST',headers:{'X-API-Key':key,'X-Tenant-Id':tenant,'Content-Type':'application/json'},body:JSON.stringify({direction:'inbound',channel,identity:'ceo@example.test',person_id:ceo.id,thread_id:'thread_continuity_fixture',content:`Confirmed ${channel} evidence: the status pack is due Wednesday.`,correlation:{external_project_id:'alpha'}})});
       assert.equal(response.status,201,await response.text());
     }
-    const voice = await buildVoiceAgentContext({
+      // Mirror an actual provider SMS arriving before any project association.
+      const smsThread=(await cs.sql.query("insert into sms_threads(tenant_id,phone_number,twilio_number,contact_id) values($1,'+61400000111','+61400000999',$2) returning id",[tenant,ceo.id])).rows[0].id;
+      await cs.sql.query("insert into sms_messages(tenant_id,thread_id,direction,role,content,status,communication_id,communication_thread_id) values($1,$2,'inbound','user','For alpha the test code is BLUE HERON 47','received','comm_live_sms_fixture','thread_continuity_fixture')",[tenant,smsThread]);
+      const smsDetail=await client.getCommunication(tenant,'comm_live_sms_fixture');
+      assert.equal(smsDetail.sender,'+61400000111');
+      assert.equal(smsDetail.personId,ceo.id);
+      assert.deepEqual(smsDetail.recipients,['+61400000999']);
+      const pendingJob={id:'comm_live_sms_fixture',orgId:tenant,communicationId:'comm_live_sms_fixture',eventId:'evt_live_sms_fixture',channel:'sms' as const,personId:ceo.id};
+      await enqueueAgentInboxJob({...pendingJob,id:'unrelated_pending'});
+      await enqueueAgentInboxJob(pendingJob);
+      const claimed=await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id});
+      assert.equal(claimed.length,1);assert.equal(claimed[0].id,pendingJob.id);
+      assert.equal((await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id})).length,0);
+      await finishAgentInboxJob(claimed[0],{status:'completed'});
+      assert.equal((await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id})).length,0);
+      const voice = await buildVoiceAgentContext({
       request_id: "voice-a",
       tenant_id: tenant,
       person_id: ceo.id,
-      thread_id: "thread-a",
+        thread_id: "thread_continuity_fixture",
       communication_id: "comm-a",
       service_identity: "+61400000999",
       utterance: "alpha",
@@ -292,7 +310,8 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
     assert.match(voice.instructions,/Ask one question at a time/);
     assert.doesNotMatch(voice.instructions,/Keep replies brief/);
     const history=(voice.project?.context as any)?.history;
-    assert.equal(history.status,'current');
+      assert.equal(history.status,'current');
+      assert.ok(history.sources.some((source:any)=>source.id==='comm_live_sms_fixture' && source.text.includes('BLUE HERON 47')));
     assert.deepEqual(new Set(history.sources.map((source:any)=>source.channel)),new Set(['email','sms','voice','recording']));
     assert.doesNotMatch(JSON.stringify(voice), /Excluded beta obligation/);
     const publicVoice = await buildVoiceAgentContext({

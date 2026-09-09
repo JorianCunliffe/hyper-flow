@@ -3,6 +3,7 @@ export type MemoryKind = 'search' | 'evidence' | 'person' | 'thread' | 'project'
 export interface MemoryRequest {
   kind: MemoryKind; id?: string; query?: string; person_id?: string;
   external_project_id?: string; allowed_project_ids?: string[]; include_private?: boolean; limit?: number;
+  conversation_thread_id?: string;
 }
 export interface MemoryEnvelope {
   contract_version: 'memory-context.v1';

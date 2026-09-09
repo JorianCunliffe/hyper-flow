@@ -425,8 +425,8 @@ export const processAgentInboxJob = async (
   }
 };
 
-export const processAgentInbox = async (limit = 10): Promise<{ claimed: number; completed: number }> => {
-  const jobs = await claimAgentInboxJobs(limit);
+export const processAgentInbox = async (limit = 10, target?: {orgId: string; jobId: string}): Promise<{ claimed: number; completed: number }> => {
+  const jobs = await claimAgentInboxJobs(limit, Date.now(), target);
   let completed = 0;
   for (const job of jobs) {
     await processAgentInboxJob(job);
