@@ -754,6 +754,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
+              <fieldset className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                <legend className="px-2 text-sm font-bold text-slate-800">Conversation continuity</legend>
+                <p className="mb-3 text-sm text-slate-600">Recognize permitted contacts by their incoming number and use their previous email, SMS, calls and meeting evidence within the selected project. If the conversation is ambiguous, the agent asks which one.</p>
+                <label className="mb-4 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={agentDraft.conversation?.historyEnabled !== false} onChange={event => setAgentDraft(current => ({...current,conversation:{...current.conversation,historyEnabled:event.target.checked}}))}/>Use previous communications in SMS and voice replies</label>
+                {([
+                  ['prompt', 'Shared conversation prompt', 'How should your agent speak and handle conversations?'],
+                  ['smsPrompt', 'Additional SMS instructions', 'Optional channel-specific style and questions'],
+                  ['voicePrompt', 'Additional voice instructions', 'Optional channel-specific style and questions'],
+                ] as const).map(([key,label,placeholder]) => <label key={key} className="mb-3 block text-sm font-semibold text-slate-700">{label}<textarea rows={3} maxLength={key === 'prompt' ? 4000 : 2000} value={agentDraft.conversation?.[key] || ''} placeholder={placeholder} onChange={event => setAgentDraft(current => ({...current,conversation:{...current.conversation,[key]:event.target.value}}))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-3 font-normal"/></label>)}
+                <p className="text-xs text-slate-600">The shared prompt applies first, then the channel instructions. Permissions, draft-only email and approval rules always apply. Voice retains its existing line/contact prompt. History is bounded and excludes private, failed and retracted evidence. Save with “Save agent profile” below.</p>
+              </fieldset>
               <fieldset>
                 <legend className="text-sm font-bold text-slate-700 mb-2">Person-specific project access</legend>
                 <p className="mb-3 text-xs text-slate-500">Grant projects to stable Communications people. Once any grants exist, people without a row cannot use the agent.</p>

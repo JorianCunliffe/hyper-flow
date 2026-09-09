@@ -273,6 +273,11 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
       JSON.stringify(shared),
       /Excluded beta obligation|sourceCommunicationIds|reviewerUid/,
     );
+    await saveTenantAgentProfile(tenant, {conversation:{prompt:'Use the phrase status pack.',voicePrompt:'Ask one question at a time.',smsPrompt:'Keep replies brief.'}});
+    for (const channel of ['email','sms','voice','recording']) {
+      const response=await fetch(address+'/v1/communications',{method:'POST',headers:{'X-API-Key':key,'X-Tenant-Id':tenant,'Content-Type':'application/json'},body:JSON.stringify({direction:'inbound',channel,identity:'ceo@example.test',person_id:ceo.id,thread_id:'thread_continuity_fixture',content:`Confirmed ${channel} evidence: the status pack is due Wednesday.`,correlation:{external_project_id:'alpha'}})});
+      assert.equal(response.status,201,await response.text());
+    }
     const voice = await buildVoiceAgentContext({
       request_id: "voice-a",
       tenant_id: tenant,
@@ -283,6 +288,12 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
       utterance: "alpha",
     });
     assert.match(JSON.stringify(voice), /Deliver supplier update/);
+    assert.match(voice.instructions,/Use the phrase status pack/);
+    assert.match(voice.instructions,/Ask one question at a time/);
+    assert.doesNotMatch(voice.instructions,/Keep replies brief/);
+    const history=(voice.project?.context as any)?.history;
+    assert.equal(history.status,'current');
+    assert.deepEqual(new Set(history.sources.map((source:any)=>source.channel)),new Set(['email','sms','voice','recording']));
     assert.doesNotMatch(JSON.stringify(voice), /Excluded beta obligation/);
     const publicVoice = await buildVoiceAgentContext({
       request_id: "voice-b",

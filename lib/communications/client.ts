@@ -30,6 +30,7 @@ export interface CommunicationsClientOptions {
   baseUrl?: string;
   apiKey?: string;
   fetchImpl?: typeof fetch;
+  timeoutMs?: number;
 }
 
 export class HttpCommunicationsClient implements CommunicationsClient {
@@ -41,6 +42,7 @@ export class HttpCommunicationsClient implements CommunicationsClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly timeoutMs: number;
 
   constructor(options: CommunicationsClientOptions = {}) {
     const baseUrl = options.baseUrl ?? process.env.COMMUNICATIONS_API_URL;
@@ -61,6 +63,7 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     this.baseUrl = parsed.toString().replace(/\/$/, '');
     this.apiKey = apiKey;
     this.fetchImpl = options.fetchImpl ?? fetch;
+    this.timeoutMs = Math.max(250, Math.min(options.timeoutMs || REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS));
   }
 
   async listMeetings(tenantId:string, offset=0): Promise<{data:MeetingRecord[];next:number|null}> {
@@ -372,7 +375,7 @@ export class HttpCommunicationsClient implements CommunicationsClient {
     options: { method: 'GET' | 'POST' | 'PATCH'; body?: unknown; idempotencyKey?: string; tenantId?: string }
   ): Promise<any> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
         method: options.method,
