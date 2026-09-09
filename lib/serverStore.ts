@@ -424,7 +424,16 @@ export const consumeOrganizationInvite = async (
     throw new Error('This account already belongs to another organization');
   }
   let orgId = '';
-  const result = await inviteRef.transaction(current => {
+  // Keep the authoritative value cached while the transaction runs. On a cold
+  // SDK instance an initial null cache would otherwise abort a valid invite.
+  const keepCurrent = () => {};
+  let result;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      inviteRef.on('value', keepCurrent, reject);
+      inviteRef.once('value', () => resolve(), reject);
+    });
+    result = await inviteRef.transaction(current => {
     if (!current) return undefined;
     if (current.consumedAt) {
       if (current.consumedBy !== uid) return undefined;
@@ -437,7 +446,10 @@ export const consumeOrganizationInvite = async (
     orgId = String(current.orgId || '');
     if (!orgId) return undefined;
     return { ...current, consumedAt: Date.now(), consumedBy: uid };
-  });
+    });
+  } finally {
+    inviteRef.off('value', keepCurrent);
+  }
   if (!result.committed || !orgId) throw new Error('Invite is invalid, expired, already used, or belongs to another email');
   const now = Date.now();
   await getDb().ref().update({
