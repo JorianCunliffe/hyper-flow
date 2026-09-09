@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, BrainCircuit, CheckCircle2, Inbox, Pause, Play, RefreshCw, Settings } from 'lucide-react';
 import type { Project, TenantSchedule } from '../types';
 import { firebaseService } from '../services/firebaseService';
+import { ServiceStatusNotices } from './ServiceStatusNotices';
 
 export const ServiceConfigurationPanel: React.FC<{ project: Project; onConfigure: () => void; onOpenActivity?: (view: 'emails' | 'coaching') => void }> = ({ project, onConfigure, onOpenActivity }) => {
   const [status, setStatus] = useState<any>();
@@ -46,5 +47,6 @@ export const ServiceConfigurationPanel: React.FC<{ project: Project; onConfigure
     {status && <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-violet-900 md:grid-cols-4"><div><b>Connection:</b> {project.projectData?.triage_connection_id || project.projectData?.coaching_workspace_connection_id || 'missing'}</div><div><b>Previous:</b> {status.lastRun ? isCoaching ? status.lastRun.status : `${status.lastRun.status} · ${status.lastRun.processedCount ?? 0}` : 'none'}</div><div><b>Next:</b> {schedule ? new Date(schedule.nextRunAt).toLocaleString() : 'not scheduled'}</div><div className="flex items-center gap-1">{status.scheduler?.overdue ? <AlertTriangle size={14} className="text-amber-600" /> : <CheckCircle2 size={14} className="text-emerald-600" />}<b>Tick:</b> {status.scheduler?.lastTickAt ? new Date(status.scheduler.lastTickAt).toLocaleString() : 'never'}</div></div>}
     {status?.lastDigest && <div className="mt-3 rounded-lg bg-white/80 p-3 text-xs text-violet-900"><div className="flex flex-wrap items-center gap-2 font-bold"><span>{status.lastDigest.counts?.total ?? 0} new</span><span aria-hidden="true">·</span><span>{status.lastDigest.counts?.outstanding ?? 0} outstanding</span><span aria-hidden="true">·</span><span>{status.lastDigest.counts?.draftsPrepared ?? 0} drafts currently prepared</span></div><p className="mt-1 text-[11px] text-violet-700">Drafts cover the current outstanding set and do not necessarily correspond to every new message.</p>{status.lastDigest.summary && <details className="mt-2"><summary className="cursor-pointer font-bold text-violet-800">View digest summary</summary><p className="mt-2 whitespace-pre-wrap leading-5">{status.lastDigest.summary}</p></details>}</div>}
     {status?.scheduler?.warning && <p className="mt-2 text-xs font-bold text-amber-700">{status.scheduler.warning}</p>}
+    <ServiceStatusNotices status={status} />
   </div>;
 };
