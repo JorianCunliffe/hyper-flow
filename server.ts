@@ -1,5 +1,7 @@
 import { serviceProjectRequest, SERVICE_PROJECT_ROUTES } from './lib/serviceProjectApi.js';
 import { handleLifecycle } from './lib/tenantLifecycle/api';
+import { handleFiles } from './lib/files/api';
+import { FileError } from './lib/files/model';
 import { LifecycleError } from './lib/tenantLifecycle/model';
 import { handleMemoryContextRequest } from './lib/communications/memoryContext';
 import { handleMeetingRequest, MeetingRequestError } from './lib/communications/meetings';
@@ -110,6 +112,9 @@ async function startServer() {
     }
   });
   app.use('/api/workspace',express.json({limit:'4mb'}));
+  app.use('/api/files',express.json({limit:'2mb'}));
+  app.use('/api/asks',express.json({limit:'4mb'}));
+  app.use('/forms/ask',express.json({limit:'4mb'}));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -176,6 +181,7 @@ async function startServer() {
   });
   app.all('/api/tenant',async(req,res)=>{try{return res.status(200).json(req.query.view==='lifecycle'?await handleLifecycle(req as any):await handleTenantControl(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof LifecycleError||error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
   app.all('/api/workspace',async(req,res)=>{try{return res.status(200).json(await handleWorkspace(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof LifecycleError||error instanceof ApiAuthError||error instanceof TenantControlError?error.status:500).json({error:error.message});}});
+  app.all('/api/files',async(req,res)=>{try{return res.status(200).json(await handleFiles(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof FileError||error instanceof ApiAuthError?error.status:500).json({error:error.message});}});
   app.all('/api/publishing',async(req,res)=>{try{return res.status(200).json(await publishingRequest(req,await requireAppMember(req as any)));}catch(error:any){return res.status(error instanceof ApiAuthError||error instanceof PublishingError?error.status:500).json({error:error.message});}});
   app.all('/api/artifacts', async(req,res)=>{
     try{return res.status(200).json(await handleArtifacts(req,await requireAppMember(req as any)));}
@@ -824,7 +830,7 @@ async function startServer() {
           actorVerified: Boolean(authenticated)
         });
         if (!outcome.ok) {
-          await deleteStoredAskAttachments(attachments);
+          await deleteStoredAskAttachments(orgId,attachments);
           const status = outcome.reason === 'already_answered' ? 409
             : outcome.reason === 'ask_not_found' || outcome.reason === 'project_not_found' ? 404
             : 400;
