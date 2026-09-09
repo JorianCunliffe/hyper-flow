@@ -1305,12 +1305,13 @@ export const enqueueAgentInboxJob = async (
   return job;
 };
 
-export const claimAgentInboxJobs = async (limit = 10, now = Date.now()): Promise<AgentInboxJob[]> => {
+export const claimAgentInboxJobs = async (limit = 10, now = Date.now(), target?: {orgId: string; jobId: string}): Promise<AgentInboxJob[]> => {
   const max = Math.min(Math.max(limit, 1), 25);
-  const pending = await getDb().ref('agent_inbox_pending')
+  const pending = target ? await agentInboxIndexRef(target.orgId,target.jobId).get() : await getDb().ref('agent_inbox_pending')
     .orderByChild('availableAt').endAt(now).limitToFirst(max * 3).get();
   if (!pending.exists()) return [];
-  const candidates = Object.values<any>(pending.val() || {})
+  const candidates = (target ? [pending.val()] : Object.values<any>(pending.val() || {}))
+    .filter(candidate => Number(candidate.availableAt || 0) <= now)
     .sort((a, b) => Number(a.availableAt || 0) - Number(b.availableAt || 0))
     .slice(0, max);
   const claimed: AgentInboxJob[] = [];

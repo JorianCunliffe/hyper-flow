@@ -73,6 +73,7 @@ export async function conversationEvidence(
       kind: "evidence",
       external_project_id: input.projectId,
       person_id: input.personId,
+      ...(input.threadId ? {conversation_thread_id: input.threadId} : {}),
       allowed_project_ids: [input.projectId],
       include_private: false,
       limit: 40,
@@ -83,7 +84,8 @@ export async function conversationEvidence(
     const valid = rows.filter(
       (row) =>
         row &&
-        row.correlation?.external_project_id === input.projectId &&
+        (row.correlation?.external_project_id === input.projectId ||
+          (!row.project_id && !row.correlation?.external_project_id && !!input.threadId && row.thread_id === input.threadId)) &&
         (row.person_id || row.contact_id) === input.personId &&
         row.memory_eligible === true &&
         row.metadata?.private !== true &&

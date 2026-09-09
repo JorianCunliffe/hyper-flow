@@ -3,6 +3,8 @@ import { externalEventHttpStatus, receiveExternalEvent } from '../lib/externalEv
 import { createHash } from 'node:crypto';
 import { readVoiceContextResponse, saveVoiceContextResponse, serverStoreStatus } from '../lib/serverStore.js';
 import { buildVoiceAgentContext, type VoiceAgentContextRequest } from '../lib/voiceAgentContext.js';
+import { waitUntil } from '@vercel/functions';
+import { processAgentInbox } from '../lib/agentRouter.js';
 
 const json = (body: unknown, status: number): Response => Response.json(body, { status });
 
@@ -62,6 +64,13 @@ export const POST = async (request: Request): Promise<Response> => {
       return json(stored, 200);
     }
     const outcome = await receiveExternalEvent({ ...body, source: body.source || 'communications' });
+    if (outcome.ok && outcome.reason === 'agent_job_queued') {
+      const orgId = String(body.tenant_id || body.correlation?.tenant_id || '');
+      const jobId = String(body.communication_id || '');
+      if (orgId && jobId) waitUntil(processAgentInbox(1, {orgId, jobId}).catch(error => {
+        console.error('Immediate agent inbox processing failed', {orgId, jobId, error: error?.message});
+      }));
+    }
     if (!outcome.ok) {
       console.warn('External event was not accepted', {
         event_id: body.event_id,

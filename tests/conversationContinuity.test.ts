@@ -67,6 +67,7 @@ test("continuity reads exact person/project and projects only bounded cross-chan
     assert.equal(org, "tenant-a");
     assert.deepEqual(request.allowed_project_ids, ["alpha"]);
     assert.equal(request.person_id, "alex");
+    assert.equal(request.conversation_thread_id, "thread-a");
     assert.equal(request.include_private, false);
     return {
       contract_version: "memory-context.v1",
@@ -86,13 +87,15 @@ test("continuity reads exact person/project and projects only bounded cross-chan
           }),
           row("private", { metadata: { private: true } }),
           row("failed", { memory_eligible: false }),
+          row("unassigned-current", {correlation:{}}),
+          row("unassigned-other", {correlation:{},thread_id:'other'}),
         ],
       },
     };
   });
   assert.deepEqual(
     result.sources.map((s) => s.id),
-    ["email", "sms", "voice", "recording"],
+    ["email", "sms", "voice", "recording", "unassigned-current"],
   );
   assert.equal(result.truncated, true);
   assert.ok(!JSON.stringify(result).includes("other-person"));

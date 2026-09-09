@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: JorianCunliffe/communications-service
-          ref: 438c65e38a53a2edc1bbc74740bbdf9ac1e626e4
+          ref: 4d572b760af4fd8243d1aba7057ff4d1ef03eef1
           path: communications
       - uses: actions/setup-node@v4
         with:
