@@ -55,6 +55,14 @@ test("Phase 11 tenant API credentials and workspace revisions use real isolated 
         });
       }
     });
+    const {consumeOrganizationInvite}=await import('../../lib/serverStore');
+    await env.withSecurityRulesDisabled(async c=>{
+      await set(ref(c.database(),'invites/cold_invite'),{orgId:member.orgId,email:'fixture@example.invalid',createdAt:Date.now(),invitedBy:member.uid});
+    });
+    await assert.rejects(consumeOrganizationInvite('wrong_invitee','wrong@example.invalid','cold_invite'),/Invite/);
+    assert.equal(await consumeOrganizationInvite('fixture_invitee','fixture@example.invalid','cold_invite'),member.orgId);
+    assert.equal(await consumeOrganizationInvite('fixture_invitee','fixture@example.invalid','cold_invite'),member.orgId);
+    await assert.rejects(consumeOrganizationInvite('another_invitee','fixture@example.invalid','cold_invite'),/Invite/);
     const secret = "phase11_fixture_secret_not_production_001";
     const input = {
       method: "POST",

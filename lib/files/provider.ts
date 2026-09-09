@@ -66,7 +66,9 @@ export const cloudFileProvider: FileProvider = {
         "Content-Length": "0",
         "Content-Range": `bytes */${file.bytes}`,
       },
-      redirect: "error",
+      // GCS uses 308 as upload progress, which fetch treats as a redirect.
+      // Inspect the status without following any Location header.
+      redirect: "manual",
       signal: AbortSignal.timeout(30000),
     });
     if (response.status === 308) {
@@ -97,7 +99,7 @@ export const cloudFileProvider: FileProvider = {
         "Content-Range": `bytes ${offset}-${offset + bytes.length - 1}/${file.bytes}`,
       },
       body: bytes as any,
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(60000),
     });
     if (!response.ok && response.status !== 308)
