@@ -1,3 +1,4 @@
+import { outboundConversationContext } from './outboundConversationContext.js';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createCommunicationsClient } from './communications/client.js';
 import { CommunicationsApiError } from './communications/errors.js';
@@ -513,15 +514,21 @@ export async function executeTask(
       const instruction = templateData.instruction || templateData.prompt || templateData.body || parsedContent;
       if (!instruction) throw new Error('Outgoing call requires an instruction, prompt or body');
 
-      const result = await createCommunicationsClient().startCall({
+      const client = createCommunicationsClient();
+      const correlation = communicationCorrelation(ctx);
+      const history = await outboundConversationContext({orgId:correlation.tenant_id,projectId:correlation.external_project_id!,to:String(toPhone)},client);
+      const overrides = callOverrides(String(instruction));
+      overrides.systemMessage += `\n\n${history.instructions}`;
+      logs.push(`Conversation context: ${history.status}; ${history.sources.length} authorized sources`);
+      const result = await client.startCall({
         to: String(toPhone),
         from: communicationFromNumber(templateData, projectData, ctx),
-        overrides: callOverrides(String(instruction)),
+        overrides,
         correlation: communicationCorrelation(ctx),
         purpose: { type: String(templateData.purpose_type || 'workflow_action') },
         callback_url: communicationCallbackUrl(ctx)
       });
-      return communicationResponse(result, logs, { call_data: templateData });
+      return communicationResponse(result, logs, { call_data: templateData, conversation_context: {status:history.status,sourceIds:history.sources} });
     } catch (callError: any) {
       logs.push(`Communications Error: ${callError.message}`);
       return { httpStatus: 500, body: { status: 'error', error: callError.message, logs } };

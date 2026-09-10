@@ -306,6 +306,13 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
       await finishAgentInboxJob(retried[0],{status:'completed'});
       await assert.rejects(replayAgentInboxJob(tenant,pendingJob.id),/Only failed/);
       assert.equal((await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id})).length,0);
+      const {outboundConversationContext} = await import('../../lib/outboundConversationContext');
+      const outbound = await outboundConversationContext({orgId:tenant,projectId:'alpha',to:'+61400000111'},client);
+      assert.equal(outbound.status,'current');
+      assert.match(outbound.instructions,/BLUE HERON 47/);
+      assert.ok(outbound.sources.includes('comm_live_sms_fixture'));
+      assert.match(outbound.instructions,/Ask one question at a time/);
+      assert.doesNotMatch(outbound.instructions,/Excluded beta obligation/);
       const voice = await buildVoiceAgentContext({
       request_id: "voice-a",
       tenant_id: tenant,
