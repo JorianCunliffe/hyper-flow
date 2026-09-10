@@ -76,6 +76,7 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
           name,
           identities: [
             { type: "email", value: `${name.toLowerCase()}@example.test` },
+            ...(name === "CEO" ? [{ type: "phone", value: "+61400000111" }] : []),
           ],
         }),
       });
