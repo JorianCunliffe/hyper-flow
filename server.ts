@@ -353,7 +353,9 @@ async function startServer() {
       const member = await requireAppMember(req as any);
       const jobId = String(req.body?.jobId || '').trim();
       if (!jobId) return res.status(400).json({ error: 'jobId is required' });
-      return res.status(200).json({ job: await replayAgentInboxJob(member.orgId, jobId) });
+      const job = await replayAgentInboxJob(member.orgId, jobId);
+      void processAgentInbox(1, {orgId: member.orgId, jobId}).catch(error => console.error('Agent replay failed', error?.message));
+      return res.status(200).json({ job });
     } catch (error: any) {
       return res.status(error instanceof ApiAuthError ? error.status : 500).json({ error: error?.message || String(error) });
     }
