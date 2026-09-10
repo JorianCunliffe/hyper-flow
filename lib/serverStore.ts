@@ -1387,7 +1387,16 @@ export const listAgentInboxJobs = async (orgId: string, limit = 100): Promise<Ag
 
 export const replayAgentInboxJob = async (orgId: string, jobId: string): Promise<AgentInboxJob> => {
   const now = Date.now();
-  const result = await agentInboxJobRef(orgId, jobId).transaction(current => {
+  const jobRef = agentInboxJobRef(orgId, jobId);
+  const keepCurrent = () => {};
+  let result;
+  try {
+    // Retain the server value so a cold transaction does not reject a real job.
+    await new Promise<void>((resolve, reject) => {
+      jobRef.on('value', keepCurrent, reject);
+      jobRef.once('value', () => resolve(), reject);
+    });
+    result = await jobRef.transaction(current => {
     if (!current || current.orgId !== orgId) return undefined;
     if (!['failed', 'needs_review'].includes(current.status)) return undefined;
     return {
@@ -1400,6 +1409,9 @@ export const replayAgentInboxJob = async (orgId: string, jobId: string): Promise
       error: null
     };
   });
+  } finally {
+    jobRef.off('value', keepCurrent);
+  }
   if (!result.committed) throw new Error('Only failed or review-held agent jobs can be replayed');
   const job = result.snapshot.val() as AgentInboxJob;
   await agentInboxIndexRef(orgId, jobId).set({ orgId, jobId, availableAt: now, createdAt: job.createdAt });

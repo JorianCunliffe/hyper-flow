@@ -1,3 +1,5 @@
+import { waitUntil } from '@vercel/functions';
+import { processAgentInbox } from '../../lib/agentRouter.js';
 import { readDiagnostics } from '../../lib/tenantControl/diagnostics.js';
 import { TenantControlError } from '../../lib/tenantControl/model.js';
 import { handleMemoryContextRequest } from '../../lib/communications/memoryContext.js';
@@ -141,7 +143,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
       const jobId = String(req.body?.jobId || '').trim();
       if (!jobId) return res.status(400).json({ error: 'jobId is required' });
-      return res.status(200).json({ job: await replayAgentInboxJob(member.orgId, jobId) });
+      const job = await replayAgentInboxJob(member.orgId, jobId);
+      waitUntil(processAgentInbox(1, {orgId: member.orgId, jobId}).catch(error => console.error('Agent replay failed', error?.message)));
+      return res.status(200).json({ job });
     }
     if (action === 'mailbox_start') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

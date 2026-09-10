@@ -50,6 +50,7 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
     listOperationalCommitments,
     enqueueAgentInboxJob,
     claimAgentInboxJobs,
+    replayAgentInboxJob,
     finishAgentInboxJob,
   } = await import("../../lib/serverStore");
   const { getApps, deleteApp } = await import("firebase-admin/app");
@@ -294,7 +295,16 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
       const claimed=await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id});
       assert.equal(claimed.length,1);assert.equal(claimed[0].id,pendingJob.id);
       assert.equal((await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id})).length,0);
-      await finishAgentInboxJob(claimed[0],{status:'completed'});
+      await finishAgentInboxJob(claimed[0],{status:'needs_review',error:'Provider cap reached'});
+      const replayed = await replayAgentInboxJob(tenant,pendingJob.id);
+      assert.equal(replayed.status,'pending');
+      assert.equal(replayed.attemptCount,0);
+      await assert.rejects(replayAgentInboxJob(tenant,pendingJob.id),/Only failed/);
+      await assert.rejects(replayAgentInboxJob('other_tenant',pendingJob.id),/Only failed/);
+      const retried = await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id});
+      assert.equal(retried.length,1);
+      await finishAgentInboxJob(retried[0],{status:'completed'});
+      await assert.rejects(replayAgentInboxJob(tenant,pendingJob.id),/Only failed/);
       assert.equal((await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:pendingJob.id})).length,0);
       const voice = await buildVoiceAgentContext({
       request_id: "voice-a",
