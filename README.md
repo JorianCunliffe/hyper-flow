@@ -96,6 +96,8 @@ Every outbound SMS or call carries:
 - `tenant_id`, `external_project_id`, `run_id`, and `task_id` correlation;
 - an HTTPS callback URL derived from `PUBLIC_BASE_URL`.
 
+Outbound calls also carry cross-channel conversation context. HyperFlow resolves the destination number to a single granted Communications person, collects recent inbound memory-eligible evidence for that project, and appends it to the call's system message so the assistant can refer to an earlier text or email. Turn it off per tenant with **Conversation continuity** in **Settings > Agent & Connections**. When history is disabled, the person is ambiguous or ungranted, or the lookup fails, the call is instructed not to guess at unverifiable history rather than proceeding without a boundary. The resulting status is recorded on the action run. See [docs/API.md](./docs/API.md#outbound-conversation-context).
+
 ## Human Asks
 
 HyperFlow maintains one canonical Ask and creates recipient/channel-specific delivery IDs and tokens. All accepted responses pass through the same `respondToAsk` service, which validates the response, records it, applies the result, advances the flow, delivers any newly raised Asks, and saves the project.

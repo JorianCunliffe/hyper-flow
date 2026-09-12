@@ -257,6 +257,8 @@ Accepted SMS or voice work: `202`
 }
 ```
 
+A voice action's `output` additionally carries `conversation_context` describing the cross-channel history offered to that call; see [outbound conversation context](#outbound-conversation-context).
+
 An accepted SMS or voice action remains waiting until a mapped terminal event arrives. A `send_email` action is different: it returns `200` when Communications accepts the email, and later provider delivery/failure and reply events do not reopen that completed action. A Communications response explicitly marked `failed` returns `502`; validation, configuration, provider HTTP, timeout, and other execution failures currently return `500`. Unknown task types return `400`.
 
 | Status | Meaning |
@@ -806,6 +808,9 @@ POST {COMMUNICATIONS_API_URL}/v1/calls
     "aiSpeaksFirst": true,
     "liveTranscript": true
   },
+  "purpose": {
+    "type": "workflow_action"
+  },
   "correlation": {
     "tenant_id": "org_1",
     "external_project_id": "project_1",
@@ -816,7 +821,28 @@ POST {COMMUNICATIONS_API_URL}/v1/calls
 }
 ```
 
-HyperFlow sends only the allow-listed voice overrides shown above.
+`purpose.type` defaults to `workflow_action` and can be overridden with the action template's `purpose_type`.
+
+HyperFlow sends only the four allow-listed voice override keys shown above. `systemMessage` is not only the action instruction: before each call HyperFlow resolves cross-channel conversation context for the destination number and appends it to that key. The other three keys are sent verbatim.
+
+### Outbound conversation context
+
+The appended block carries continuity rules, the tenant's configured voice conversation style, and a delimited `AUTHORIZED CONVERSATION DATA` section holding recent evidence. It is assembled server-side; the action template cannot supply or extend it.
+
+Context is included only when every check passes: the tenant has an agent profile, `conversation.historyEnabled` is not `false`, the destination number resolves to exactly one Communications person, and that person holds a grant for this project. Evidence is limited to inbound, memory-eligible communications from the last seven days, excluding `human_ask`, `workflow_action`, and `workflow_notification` purposes. Any failure falls back to an explicit instruction not to guess at unverifiable history, so a lookup outage cannot cause the assistant to invent one.
+
+The resulting status is reported on the action run under `output.conversation_context`:
+
+```json
+{
+  "conversation_context": {
+    "status": "current",
+    "sourceIds": ["comm_earlier_1", "comm_earlier_2"]
+  }
+}
+```
+
+`status` is `current`, `stale`, `unavailable`, or `disabled`. `disabled` means the tenant turned history off; `unavailable` covers a missing profile, an ambiguous or ungranted person, and any lookup failure. `sourceIds` lists only the evidence identifiers, never the retrieved content. The same status is written to the action logs.
 
 ### Send email
 
