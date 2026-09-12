@@ -391,7 +391,7 @@ export const CockpitPanel: React.FC = () => {
                 name="receptionistEnabled"
                 defaultChecked={data.configuration.receptionistEnabled}
               />{" "}
-              Allow public receptionist message intake
+              Record receptionist messages and callback requests for review
             </label>
             <label>
               Receptionist review project

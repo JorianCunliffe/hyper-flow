@@ -354,6 +354,32 @@ test("Phase 07 real stores: cockpit, shared relationship context, public intake 
     assert.equal(intake!.id, replay!.id);
     assert.equal(intake!.state, "candidate");
     assert.equal(intake!.terms.dueAt, "");
+    // Exercise the actual known-caller inbox path, then read the UI's REST resource.
+    const callbackResponse = await fetch(address + '/v1/communications', {
+      method:'POST', headers:{'X-API-Key':key,'X-Tenant-Id':tenant,'Content-Type':'application/json'},
+      body:JSON.stringify({channel:'voice',direction:'inbound',identity:'ceo@example.test',person_id:ceo.id,
+        thread_id:'thread_callback_fixture', content:"Please record that I'd like a call back about alpha tomorrow.",correlation:{external_project_id:'alpha'}}),
+    });
+    assert.equal(callbackResponse.status,201);
+    const callbackCommunication = await callbackResponse.json();
+    const callbackId = callbackCommunication.communication_id;
+    assert.ok(callbackId);
+    await enqueueAgentInboxJob({id:callbackId,orgId:tenant,communicationId:callbackId,eventId:'evt_callback_fixture',channel:'voice',personId:ceo.id,threadId:'thread_callback_fixture'});
+    const callbackJobs = await claimAgentInboxJobs(1,Date.now(),{orgId:tenant,jobId:callbackId});
+    assert.equal(callbackJobs.length,1);
+    const { processAgentInboxJob } = await import('../../lib/agentRouter');
+    await processAgentInboxJob(callbackJobs[0], client);
+    const callbackRows = await listOperationalCommitments(tenant);
+    const callbackItem = callbackRows.rows.find(row => row.terms.criteria.includes(callbackId));
+    assert.ok(callbackItem);
+    const callbackView:any = await handleCommitments({method:'GET',query:{id:callbackItem.id}},member);
+    assert.equal(callbackView.item.state,'candidate');
+    assert.equal(callbackView.item.terms.owner,'');
+    assert.equal(callbackView.item.terms.dueAt,'');
+    assert.match(callbackView.item.terms.criteria,/tomorrow/);
+    assert.equal(callbackView.item.review.kind,'clarify');
+    await processAgentInboxJob(callbackJobs[0], client);
+    assert.equal((await listOperationalCommitments(tenant)).rows.filter(row=>row.id===callbackItem.id).length,1);
     const now = Date.parse("2026-09-09T00:00:00Z");
     const claims = await Promise.all(
       ["one", "two"].map((operationId) =>
