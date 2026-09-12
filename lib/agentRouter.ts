@@ -12,7 +12,7 @@ import type {
 import type { CommunicationResult, CommunicationsClient } from './communications/types.js';
 import { createCommunicationsClient } from './communications/client.js';
 import { channelOperatingContext } from './cockpit/channelContext.js';
-import { recordReceptionistIntake } from './cockpit/receptionist.js';
+import { recordReceptionistIntake, callbackRequestText } from './cockpit/receptionist.js';
 import {
   claimAgentInboxJobs,
   claimContactDispatch,
@@ -287,9 +287,20 @@ export const processAgentInboxJob = async (
       listTenantProjects(job.orgId)
     ]);
     if (!profile) throw new Error('Tenant agent profile is not configured');
+    // Known callers need receptionist intake too. Canonical voice content
+    // contains caller turns only, not an assistant's suggested callback.
+    const callbackText = job.channel === 'voice' ? callbackRequestText(communication.content) : null;
+    if (callbackText && profile.receptionistEnabled) {
+      const intake = await recordReceptionistIntake(job, profile, { communication, callbackText });
+      if (intake) {
+        await finishAgentInboxJob(job, { status: 'needs_review', error: `Callback request ${intake.id} needs an owner and confirmed deadline.` });
+        await setTenantTriageDisposition(job.orgId, job.communicationId, 'needs_review', 'receptionist', `Callback request recorded in Obligations (${intake.id}). No callback was promised or made.`);
+        return;
+      }
+    }
     if (allowedProjectIdsForPerson(profile, job.personId)?.length === 0) {
       if(profile.receptionistEnabled&&job.channel==='voice') {
-        const intake=await recordReceptionistIntake(job,profile);
+        const intake=await recordReceptionistIntake(job,profile,{communication});
         if(intake){await finishAgentInboxJob(job,{status:'needs_review',error:`Receptionist request ${intake.id} is awaiting review; no callback was promised.`});await setTenantTriageDisposition(job.orgId,job.communicationId,'needs_review','receptionist','Inbound request recorded for review.');return;}
       }
       throw new Error('Inbound person is not authorized for this tenant agent');
