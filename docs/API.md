@@ -90,6 +90,21 @@ Common authentication responses are `401` for a missing, invalid, or expired Fir
 | `GET`, `POST` | `/api/schedules/tick` | Run due schedules from a platform timer. |
 | `POST` | `/api/gemini/brainstormSubtasks` | Generate five subtask suggestions. |
 | `POST` | `/api/gemini/generateProjectStructure` | Generate a milestone graph. |
+| `GET`, `POST` | `/api/files` | Managed file storage. See [managed files](MANAGED_FILES.md). |
+| `GET`, `POST` | `/api/publishing` | Versioned publishing reviews. See [publishing](PUBLISHING_API.md). |
+| `GET`, `POST` | `/api/artifacts` | Generated artifact records. See [artifacts](ARTIFACT_API.md). |
+| `GET`, `POST` | `/api/calendar` | Calendar reads and scheduling. |
+| `GET`, `POST` | `/api/meetings` | Meeting records and participant audit. |
+| `GET`, `POST` | `/api/cockpit` | Aggregated tenant cockpit snapshot and configuration. |
+| `GET`, `PUT` | `/api/workspace` | Workspace snapshot; see [Phase 11](#phase-11-account-and-workspace-apis). |
+| `GET`, `POST` | `/api/tenant` | Account controls; see [Phase 11](#phase-11-account-and-workspace-apis). |
+| `GET`, `POST` | `/api/flows` | Bounded flow pages and flow creation; see [Phase 11](#phase-11-account-and-workspace-apis). |
+| `GET`, `POST`, `PATCH` | `/api/commitments` | Obligations; see [Phase 04](#phase-04-obligations-api). |
+| `GET`, `POST`, `PATCH` | `/api/thread-register`, `/api/thread-register/*` | Canonical threads; see [Phase 02](#phase-02-canonical-thread-register). |
+| `GET`, `POST` | `/api/communications/email-policy` | Read or save the organization email authority. |
+| `POST` | `/api/communications/memory` | Read current raw communication evidence for a bounded context request. |
+
+Every path above is a real route. Public paths are rewritten in [`vercel.json`](../vercel.json) onto a small number of serverless functions so the Vercel Hobby deployment stays under its function limit; the rewrite target is an implementation detail and is not part of the contract.
 
 ## Organizations and invites
 
@@ -941,6 +956,10 @@ HyperFlow also reads `GET /v1/communications` with tenant-scoped filters, `GET /
 | `GOOGLE_OAUTH_STATE_SECRET` | At least 32 random characters used to sign tenant/user-bound OAuth state. |
 | `GOOGLE_OAUTH_REDIRECT_URI` | Optional exact callback; defaults to `{PUBLIC_BASE_URL}/api/integrations/google/callback`. |
 | `INTEGRATION_ENCRYPTION_KEY` | Exactly 32 random bytes encoded as 64 hex characters or base64; seals Workspace tokens. |
+| `EMAIL_TRIAGE_BATCH_SIZE` | Optional cap on threads reconciled per email triage occurrence; defaults to 5. A schedule's own `batchSize` takes precedence. |
+| `EMAIL_SEND_POLICY_BY_TENANT` | Optional JSON object mapping organization ID to email authority mode, such as `{"org_1":"draft_only"}`. See [boundaries](architecture/BOUNDARIES.md). |
+| `HYPERFLOW_MANAGED_FILES` | Set `true` to enable private managed file storage; also requires `FIREBASE_STORAGE_BUCKET` and `FIREBASE_ENFORCE_TENANT_LIFECYCLE=true`. See [managed files](MANAGED_FILES.md). |
+| `FIREBASE_ENFORCE_TENANT_LIFECYCLE` | Set `true` to enable tenant suspend/resume mutations and managed files; requires matching deployed database rules. |
 
 Cross-service values must be paired as follows:
 
